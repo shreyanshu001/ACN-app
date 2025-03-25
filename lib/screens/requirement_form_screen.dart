@@ -49,6 +49,13 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     return true;
   }
   
+  @override
+  void initState() {
+    super.initState();
+    // Print environment variables for debugging
+    print('Env variables: AWS_S3_BUCKET=${dotenv.env['AWS_S3_BUCKET']}, AWS_S3_REGION=${dotenv.env['AWS_S3_REGION']}');
+  }
+  
   // Method to pick images
   Future<void> _pickImages() async {
     final List<XFile>? images = await _picker.pickMultiImage();

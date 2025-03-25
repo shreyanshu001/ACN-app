@@ -8,7 +8,7 @@
 build/
 ios/Pods/
 macos/Pods/
-
+build
 # Android related
 **/android/**/gradle-wrapper.jar
 **/android/.gradle

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "307915937238",
+    "project_id": "briqko-agents",
+    "storage_bucket": "briqko-agents.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:307915937238:android:6941d677d82a4d087b0077",
+        "android_client_info": {
+          "package_name": "com.example.acn"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyASbTag52vCbKR1ncF8qtJIt9k4nMxLG6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

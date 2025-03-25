@@ -7,6 +7,8 @@ import 'package:aws_s3_upload/aws_s3_upload.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -17,6 +19,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
+  
+  // Location variables
+  double _locationRange = 50.0; // Default 50km
+  String _currentLocation = 'Not set';
+  double? _latitude;
+  double? _longitude;
+  bool _isLoadingLocation = false;
   
   // S3 configuration
   String? get _s3Bucket => dotenv.env['S3_BUCKET'];
@@ -111,6 +120,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _loadUserLocationData();
+  }
+  
+  Future<void> _loadUserLocationData() async {
+    if (currentUser == null) return;
+    
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('agents')
+          .doc(currentUser!.uid)
+          .get();
+      
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null) {
+          setState(() {
+            _locationRange = data['locationRange']?.toDouble() ?? 50.0;
+            _currentLocation = data['locationAddress'] ?? 'Not set';
+            _latitude = data['latitude']?.toDouble();
+            _longitude = data['longitude']?.toDouble();
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading location data: $e');
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    setState(() {
+      _isLoadingLocation = true;
+    });
+    
+    try {
+      // Check location permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permission denied');
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions are permanently denied');
+      }
+      
+      // Get current position
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high
+      );
+      
+      // Get address from coordinates
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude, 
+        position.longitude
+      );
+      
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        String address = '${place.locality}, ${place.administrativeArea}';
+        
+        setState(() {
+          _latitude = position.latitude;
+          _longitude = position.longitude;
+          _currentLocation = address;
+        });
+        
+        // Save to Firestore
+        await _saveLocationToFirestore(
+          position.latitude, 
+          position.longitude, 
+          address, 
+          _locationRange
+        );
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Location updated successfully'))
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to get location: $e'))
+      );
+    } finally {
+      setState(() {
+        _isLoadingLocation = false;
+      });
+    }
+  }
+  
+  Future<void> _saveLocationToFirestore(
+    double latitude, 
+    double longitude, 
+    String address, 
+    double range
+  ) async {
+    if (currentUser == null) return;
+    
+    await FirebaseFirestore.instance
+        .collection('agents')
+        .doc(currentUser!.uid)
+        .update({
+      'latitude': latitude,
+      'longitude': longitude,
+      'locationAddress': address,
+      'locationRange': range,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+  
+  Future<void> _updateLocationRange(double value) async {
+    setState(() {
+      _locationRange = value;
+    });
+    
+    if (_latitude != null && _longitude != null) {
+      await _saveLocationToFirestore(
+        _latitude!, 
+        _longitude!, 
+        _currentLocation, 
+        value
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -193,6 +331,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 SizedBox(height: 20),
+                
+                // Verification status card
                 Card(
                   child: ListTile(
                     leading: Icon(Icons.verified),
@@ -207,7 +347,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
+                
                 SizedBox(height: 10),
+                
+                // Member since card
                 Card(
                   child: ListTile(
                     leading: Icon(Icons.calendar_today),
@@ -216,6 +359,89 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       userData?['createdAt'] != null
                           ? userData!['createdAt'].toDate().toString()
                           : 'Not available',
+                    ),
+                  ),
+                ),
+                
+                SizedBox(height: 10),
+                
+                // Location settings card
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Location Settings',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            _isLoadingLocation
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : IconButton(
+                                    icon: Icon(Icons.my_location),
+                                    onPressed: _getCurrentLocation,
+                                    tooltip: 'Get current location',
+                                  ),
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, color: Colors.grey[600]),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _currentLocation,
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Operation Range: ${_locationRange.toInt()} km',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Slider(
+                          value: _locationRange,
+                          min: 1,
+                          max: 100,
+                          divisions: 99,
+                          label: '${_locationRange.toInt()} km',
+                          onChanged: (value) {
+                            setState(() {
+                              _locationRange = value;
+                            });
+                          },
+                          onChangeEnd: (value) {
+                            _updateLocationRange(value);
+                          },
+                        ),
+                        SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('1 km'),
+                            Text('50 km'),
+                            Text('100 km'),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
                 ),

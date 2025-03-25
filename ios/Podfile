@@ -1,5 +1,5 @@
 # Uncomment this line to define a global platform for your project
-platform :ios, '16.0'
+ platform :ios, '16.0'
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -41,18 +41,16 @@ post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
     
-    # Force the deployment target for all pods to match the Podfile
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
       
-      # Remove any problematic compiler flags
-      if config.build_settings['OTHER_CFLAGS'].present?
-        config.build_settings['OTHER_CFLAGS'] = config.build_settings['OTHER_CFLAGS'].gsub(/-G/, '')
-      end
+      # M1 Mac specific settings
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'i386'
+      config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
       
-      # Disable ARCHS setting for simulator
-      if config.build_settings['SDKROOT'] == 'iphonesimulator'
-        config.build_settings.delete 'ARCHS'
+      # Remove problematic compiler flags
+      if config.build_settings['OTHER_CFLAGS'].present?
+        config.build_settings['OTHER_CFLAGS'] = config.build_settings['OTHER_CFLAGS'].reject { |flag| flag == '-G' }
       end
     end
   end

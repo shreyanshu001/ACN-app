@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:aws_s3_upload/aws_s3_upload.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io';
 import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
@@ -32,12 +33,12 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   List<File> _selectedImages = [];
   bool _isUploading = false;
   
-  // AWS S3 configuration
-  final String _s3Bucket = 'your-s3-bucket-name';
-  final String _s3Region = 'your-s3-region'; // e.g., 'us-east-1'
-  final String _s3AccessKey = 'your-access-key';
-  final String _s3SecretKey = 'your-secret-key';
-
+  // AWS S3 configuration using environment variables
+  final String _s3Bucket = dotenv.env['AWS_S3_BUCKET'] ?? '';
+  final String _s3Region = dotenv.env['AWS_S3_REGION'] ?? '';
+  final String _s3AccessKey = dotenv.env['AWS_ACCESS_KEY'] ?? '';
+  final String _s3SecretKey = dotenv.env['AWS_SECRET_KEY'] ?? '';
+  
   // Method to pick images
   Future<void> _pickImages() async {
     final List<XFile>? images = await _picker.pickMultiImage();
@@ -93,8 +94,9 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
             'timestamp': DateTime.now().toIso8601String(),
           },
         );
-        
-        if (result.isNotEmpty) {
+         
+        // Fix: Check if result is not null before checking if it's not empty
+        if (result != null && result.isNotEmpty) {
           imageUrls.add(result);
         }
       }

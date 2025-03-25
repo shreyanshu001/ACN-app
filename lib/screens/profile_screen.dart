@@ -27,11 +27,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   double? _longitude;
   bool _isLoadingLocation = false;
   
-  // S3 configuration
-  String? get _s3Bucket => dotenv.env['S3_BUCKET'];
-  String? get _s3Region => dotenv.env['S3_REGION'];
-  String? get _s3AccessKey => dotenv.env['S3_ACCESS_KEY'];
-  String? get _s3SecretKey => dotenv.env['S3_SECRET_KEY'];
+  // S3 configuration with fallbacks
+  String get _s3Bucket => dotenv.env['S3_BUCKET'] ?? 'your-s3-bucket-name';
+  String get _s3Region => dotenv.env['S3_REGION'] ?? 'us-east-1';
+  String get _s3AccessKey => dotenv.env['S3_ACCESS_KEY'] ?? '';
+  String get _s3SecretKey => dotenv.env['S3_SECRET_KEY'] ?? '';
+  
+  // Check if S3 is properly configured
+  bool get _isS3Configured => _s3AccessKey.isNotEmpty && _s3SecretKey.isNotEmpty;
 
   Future<void> _signOut() async {
     try {
@@ -93,18 +96,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
   
   Future<String?> _uploadToS3(File file, String key) async {
-    if (_s3Bucket == null || _s3Region == null || 
-        _s3AccessKey == null || _s3SecretKey == null) {
-      throw Exception('S3 configuration missing');
+    if (!_isS3Configured) {
+      throw Exception('S3 configuration missing. Please check your .env file.');
     }
     
     try {
       final result = await AwsS3.uploadFile(
-        accessKey: _s3AccessKey!,
-        secretKey: _s3SecretKey!,
+        accessKey: _s3AccessKey,
+        secretKey: _s3SecretKey,
         file: file,
-        bucket: _s3Bucket!,
-        region: _s3Region!,
+        bucket: _s3Bucket,
+        region: _s3Region,
         key: key,
         metadata: {
           'userId': currentUser?.uid ?? 'unknown',

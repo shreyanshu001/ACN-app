@@ -145,8 +145,20 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   Future<void> _submitRequirement() async {
     if (_formKey.currentState!.validate()) {
       try {
-        // First upload images to S3
-        List<String> imageUrls = await _uploadImagesToS3();
+        List<String> imageUrls = [];
+        
+        // Only try to upload images if there are images selected
+        if (_selectedImages.isNotEmpty) {
+          if (!_isS3ConfigValid()) {
+            // Show warning but continue with submission without images
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('S3 configuration missing. Submitting without images.'))
+            );
+          } else {
+            // Upload images to S3
+            imageUrls = await _uploadImagesToS3();
+          }
+        }
         
         // Then save the requirement with image URLs
         await FirebaseFirestore.instance.collection('requirements').add({
@@ -170,10 +182,16 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
         
         Navigator.pop(context);
       } catch (e) {
+        print('Error submitting requirement: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to submit requirement: $e'))
         );
       }
+    } else {
+      // Form validation failed
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please fill in all required fields'))
+      );
     }
   }
 
@@ -567,7 +585,10 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: _isUploading ? null : _submitRequirement,
+                      onPressed: _isUploading ? null : () {
+                        print('Submit button pressed');
+                        _submitRequirement();
+                      },
                       child: _isUploading 
                           ? Row(
                               mainAxisSize: MainAxisSize.min,

@@ -39,6 +39,16 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   final String _s3AccessKey = dotenv.env['AWS_ACCESS_KEY'] ?? '';
   final String _s3SecretKey = dotenv.env['AWS_SECRET_KEY'] ?? '';
   
+  // Add this method to check S3 configuration
+  bool _isS3ConfigValid() {
+    if (_s3Bucket.isEmpty || _s3Region.isEmpty || 
+        _s3AccessKey.isEmpty || _s3SecretKey.isEmpty) {
+      print('S3 config invalid: Bucket: $_s3Bucket, Region: $_s3Region');
+      return false;
+    }
+    return true;
+  }
+  
   // Method to pick images
   Future<void> _pickImages() async {
     final List<XFile>? images = await _picker.pickMultiImage();
@@ -74,6 +84,15 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     
     if (_selectedImages.isEmpty) return imageUrls;
     
+    // Check S3 configuration first
+    if (!_isS3ConfigValid()) {
+      print('S3 configuration is invalid: Bucket: $_s3Bucket, Region: $_s3Region');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('AWS S3 configuration is incomplete. Please check your .env file.'))
+      );
+      return imageUrls;
+    }
+    
     setState(() {
       _isUploading = true;
     });
@@ -81,6 +100,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     try {
       for (File imageFile in _selectedImages) {
         final String fileName = '${Uuid().v4()}${path.extension(imageFile.path)}';
+        
+        print('Uploading to S3: Bucket: $_s3Bucket, Region: $_s3Region');
         
         final result = await AwsS3.uploadFile(
           accessKey: _s3AccessKey,

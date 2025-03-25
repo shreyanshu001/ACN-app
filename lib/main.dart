@@ -5,6 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/requirements_screen.dart';
 import 'screens/requirement_form_screen.dart';
 import 'screens/requirement_matching.dart';
 

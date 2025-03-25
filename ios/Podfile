@@ -39,6 +39,23 @@ end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    
+    target.build_configurations.each do |config|
+      # Set base configuration for Runner target
+      if target.name == 'Runner'
+        case config.name
+        when 'Debug'
+          config.base_configuration_reference = installer.pods_project.files_references.find { |f| f.path == 'Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig' }
+        when 'Profile'
+          config.base_configuration_reference = installer.pods_project.files_references.find { |f| f.path == 'Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig' }
+        when 'Release'
+          config.base_configuration_reference = installer.pods_project.files_references.find { |f| f.path == 'Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig' }
+        end
+      end
+    end
+    
+    # Keep existing BoringSSL-GRPC settings
     if target.name == 'BoringSSL-GRPC'
       target.source_build_phase.files.each do |file|
         if file.settings && file.settings['COMPILER_FLAGS']

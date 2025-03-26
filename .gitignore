@@ -9,6 +9,7 @@ build/
 ios/Pods/
 macos/Pods/
 build
+.env
 # Android related
 **/android/**/gradle-wrapper.jar
 **/android/.gradle

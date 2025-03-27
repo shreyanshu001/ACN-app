@@ -172,8 +172,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
           'budgetTo': _budgetToController.text.isNotEmpty ? double.parse(_budgetToController.text) : null,
           'asPerMarketPrice': _asPerMarketPrice,
           'imageUrls': imageUrls,
-          'createdAt': FieldValue.serverTimestamp(),
-          'status': 'pending',
+          'status': 'new',  // Change this from 'pending' to 'new'
+          'createdAt': FieldValue.serverTimestamp(),  // Remove the duplicate createdAt
         });
         
         ScaffoldMessenger.of(context).showSnackBar(

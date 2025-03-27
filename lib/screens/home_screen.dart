@@ -9,9 +9,78 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
-  
+
+  @override
+  void initState() {
+    super.initState();
+    _checkEmailVerification();
+  }
+
+  Future<void> _checkEmailVerification() async {
+    if (currentUser != null && !currentUser!.emailVerified) {
+      await currentUser!.reload();
+      if (!currentUser!.emailVerified) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please verify your email to access all features'),
+            action: SnackBarAction(
+              label: 'Resend',
+              onPressed: () async {
+                await currentUser!.sendEmailVerification();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Verification email sent')),
+                );
+              },
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (currentUser == null) {
+      return Center(child: CircularProgressIndicator());
+    }
+
+    // Check if user is verified
+    if (!currentUser!.emailVerified) {
+      return Scaffold(
+        appBar: AppBar(
+          title: Text('Verification Required'),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.logout),
+              onPressed: () async {
+                await FirebaseAuth.instance.signOut();
+                Navigator.pushReplacementNamed(context, '/login');
+              },
+            ),
+          ],
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('Please verify your email to continue'),
+              SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () async {
+                  await currentUser!.sendEmailVerification();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Verification email sent')),
+                  );
+                },
+                child: Text('Resend Verification Email'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Return your regular dashboard for verified users
     return Scaffold(
       appBar: AppBar(
         title: Text('ACN Dashboard'),
@@ -133,15 +202,29 @@ class _HomeScreenState extends State<HomeScreen> {
             return Center(child: CircularProgressIndicator());
           }
 
+          // Check if document exists and has data
+          if (!snapshot.hasData || !snapshot.data!.exists) {
+            // Create agent document if it doesn't exist
+            FirebaseFirestore.instance
+                .collection('agents')
+                .doc(currentUser?.uid)
+                .set({
+              'email': currentUser?.email,
+              'name': currentUser?.displayName,
+              'verified': true,  // Set to true by default for now
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
+
           final userData = snapshot.data?.data() as Map<String, dynamic>?;
-          final bool isVerified = userData?['verified'] == true;
+          final bool isVerified = userData?['verified'] ?? true; // Default to true if field doesn't exist
 
           return SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status banner
-                if (!isVerified)
+                // Status banner - only show if explicitly set to false
+                if (userData != null && userData['verified'] == false)
                   Container(
                     width: double.infinity,
                     padding: EdgeInsets.all(12),
@@ -299,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     '${data['assetType'] ?? 'Property'} - ${data['configuration'] ?? ''}',
                                   ),
                                   trailing: Chip(
-                                    label: Text(data['status'] ?? 'pending'),
+                                    label: Text(data['status']?.toUpperCase() ?? 'NEW'),
                                     backgroundColor: _getStatusColor(data['status']),
                                   ),
                                   onTap: () {
@@ -412,9 +495,11 @@ class _HomeScreenState extends State<HomeScreen> {
         return Colors.red[100]!;
       case 'completed':
         return Colors.blue[100]!;
+      case 'new':
+        return Colors.blue[50]!;
       case 'pending':
       default:
-        return Colors.orange[100]!;
+        return Colors.orange[50]!;
     }
   }
 }

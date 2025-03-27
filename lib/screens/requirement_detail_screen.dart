@@ -335,6 +335,19 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
     
     final timestamp = FieldValue.serverTimestamp();
     
+    // Create response document
+    await FirebaseFirestore.instance
+        .collection('requirements')
+        .doc(widget.requirementId)
+        .collection('responses')
+        .add({
+      'message': text,
+      'responderId': currentUser?.uid,
+      'status': 'pending',
+      'createdAt': timestamp,
+      'projectName': projectName,
+    });
+    
     // Find existing conversation
     QuerySnapshot conversationQuery = await FirebaseFirestore.instance
         .collection('conversations')

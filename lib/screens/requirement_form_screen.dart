@@ -195,6 +195,34 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     }
   }
 
+  // Add this method after _submitRequirement
+  Future<void> _respondToRequirement(String requirementId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('requirements')
+          .doc(requirementId)
+          .collection('responses')
+          .add({
+        'responderId': FirebaseAuth.instance.currentUser!.uid,
+        'responderName': FirebaseAuth.instance.currentUser!.displayName,
+        'message': _detailsController.text,
+        'createdAt': FieldValue.serverTimestamp(),
+        'status': 'pending',  // Can be 'pending', 'accepted', 'rejected'
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Response submitted successfully'))
+      );
+      
+      Navigator.pop(context);
+    } catch (e) {
+      print('Error submitting response: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to submit response: $e'))
+      );
+    }
+  }
+
   void _clearForm() {
     _projectNameController.clear();
     _detailsController.clear();

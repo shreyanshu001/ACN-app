@@ -9,6 +9,7 @@ import 'screens/profile_screen.dart';
 import 'screens/requirements_screen.dart';
 import 'screens/requirement_form_screen.dart';
 import 'screens/requirement_matching.dart';
+import 'screens/requirement_detail_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +32,16 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: AuthWrapper(),
+      onGenerateRoute: (settings) {
+        if (settings.name == '/requirement_detail') {
+          return MaterialPageRoute(
+            builder: (context) => RequirementDetailScreen(
+              requirementId: settings.arguments as String,
+            ),
+          );
+        }
+        return null;
+      },
       routes: {
         '/login': (context) => LoginScreen(),
         '/home': (context) => HomeScreen(),

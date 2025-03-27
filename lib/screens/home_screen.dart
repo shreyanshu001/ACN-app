@@ -347,6 +347,13 @@ class _HomeScreenState extends State<HomeScreen> {
                                     '${data['assetType'] ?? ''} - ${data['configuration'] ?? ''}'
                                   ),
                                   trailing: _buildStatusChip(data['status']),
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/requirement_detail',
+                                      arguments: doc.id,
+                                    );
+                                  },
                                 ),
                               );
                             }).toList(),

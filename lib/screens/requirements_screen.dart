@@ -224,60 +224,69 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                           
                           return Card(
                             margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                            child: Padding(
-                              padding: EdgeInsets.all(16),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  if (data.containsKey('reqId'))
-                                    Text(
-                                      data['reqId'] ?? 'RQB${reqId.substring(0, 3).toUpperCase()}',
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    data['projectName'] ?? 'Unnamed Project',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.currency_rupee, color: Colors.grey[700], size: 20),
-                                      SizedBox(width: 4),
+                            child: InkWell(  // Add this InkWell
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/requirement_detail',
+                                  arguments: reqId,
+                                );
+                              },
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    if (data.containsKey('reqId'))
                                       Text(
-                                        '₹${data['budgetFrom'] ?? 0}${data['budgetTo'] != null ? ' - ₹${data['budgetTo']}' : ''} ${data['asPerMarketPrice'] == true ? '(As per market)' : ''}',
+                                        data['reqId'] ?? 'RQB${reqId.substring(0, 3).toUpperCase()}',
                                         style: TextStyle(
+                                          color: Colors.grey[600],
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(Icons.home, color: Colors.grey[700], size: 20),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        '${data['assetType'] ?? 'Property'} - ${data['configuration'] ?? ''} ${data['area'] != null ? '/ ${data['area']} sqft' : ''}',
+                                    SizedBox(height: 4),
+                                    Text(
+                                      data['projectName'] ?? 'Unnamed Project',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    data['details'] ?? 'east west or north',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
                                     ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
+                                    SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.currency_rupee, color: Colors.grey[700], size: 20),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          '₹${data['budgetFrom'] ?? 0}${data['budgetTo'] != null ? ' - ₹${data['budgetTo']}' : ''} ${data['asPerMarketPrice'] == true ? '(As per market)' : ''}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.home, color: Colors.grey[700], size: 20),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          '${data['assetType'] ?? 'Property'} - ${data['configuration'] ?? ''} ${data['area'] != null ? '/ ${data['area']} sqft' : ''}',
+                                        ),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      data['details'] ?? 'east west or north',
+                                      style: TextStyle(
+                                        color: Colors.grey[600],
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           );

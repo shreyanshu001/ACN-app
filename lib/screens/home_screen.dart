@@ -296,7 +296,126 @@ class _HomeScreenState extends State<HomeScreen> {
                       
                       SizedBox(height: 32),
                       
-                      // Recent requirements
+                      // Messages Section
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Messages',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/messages');
+                            },
+                            child: Text('View All'),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      
+                      // Recent conversations
+                      StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('conversations')
+                            .where('participants', arrayContains: currentUser?.uid)
+                            .orderBy('lastMessageTime', descending: true)
+                            .limit(5)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+
+                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                            return Card(
+                              margin: EdgeInsets.only(bottom: 8),
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Text('No conversations yet'),
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: snapshot.data!.docs.map((doc) {
+                              final data = doc.data() as Map<String, dynamic>;
+                              final String otherUserId = (data['participants'] as List)
+                                  .firstWhere((id) => id != currentUser?.uid, 
+                                      orElse: () => '');
+                              final String requirementId = data['requirementId'] ?? '';
+                              
+                              return FutureBuilder<DocumentSnapshot>(
+                                future: FirebaseFirestore.instance
+                                    .collection('agents')
+                                    .doc(otherUserId)
+                                    .get(),
+                                builder: (context, userSnapshot) {
+                                  String userName = 'User';
+                                  if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                                    final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                                    userName = userData['name'] ?? 'User';
+                                  }
+                                  
+                                  return Card(
+                                    margin: EdgeInsets.only(bottom: 8),
+                                    child: ListTile(
+                                      leading: CircleAvatar(
+                                        child: Text(userName.isNotEmpty ? userName[0] : 'U'),
+                                      ),
+                                      title: Text(userName),
+                                      subtitle: Text(data['lastMessage'] ?? 'Start a conversation'),
+                                      trailing: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          if (data['unreadCount'] != null && 
+                                              data['unreadCount'][currentUser?.uid] != null && 
+                                              data['unreadCount'][currentUser?.uid] > 0)
+                                            Container(
+                                              padding: EdgeInsets.all(6),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Text(
+                                                '${data['unreadCount'][currentUser?.uid]}',
+                                                style: TextStyle(color: Colors.white, fontSize: 12),
+                                              ),
+                                            ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            _formatTimestamp(data['lastMessageTime']),
+                                            style: TextStyle(fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                      onTap: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          '/conversation',
+                                          arguments: {
+                                            'conversationId': doc.id,
+                                            'otherUserId': otherUserId,
+                                            'requirementId': requirementId,
+                                          },
+                                        );
+                                      },
+                                    ),
+                                  );
+                                },
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
+                      
+                      SizedBox(height: 32),
+                      
+                      // Your Recent Requirements Section
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -315,9 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: 8),
-                      
-                      // Recent requirements list
+                      SizedBox(height: 16),
                       StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('requirements')
@@ -326,18 +443,22 @@ class _HomeScreenState extends State<HomeScreen> {
                             .limit(5)
                             .snapshots(),
                         builder: (context, snapshot) {
-                          if (snapshot.hasError) {
-                            return Text('Error: ${snapshot.error}');
-                          }
-
                           if (snapshot.connectionState == ConnectionState.waiting) {
-                            return CircularProgressIndicator();
+                            return Center(child: CircularProgressIndicator());
                           }
 
-                          final requirements = snapshot.data?.docs ?? [];
-                          
+                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                            return Card(
+                              margin: EdgeInsets.only(bottom: 8),
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Text('No requirements submitted yet'),
+                              ),
+                            );
+                          }
+
                           return Column(
-                            children: requirements.map((doc) {
+                            children: snapshot.data!.docs.map((doc) {
                               final data = doc.data() as Map<String, dynamic>;
                               return Card(
                                 margin: EdgeInsets.only(bottom: 8),
@@ -360,6 +481,157 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
+                      
+                      SizedBox(height: 32),
+                      
+                      // Received Responses Section
+                      Text(
+                        'Received Responses',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collection('requirements')
+                            .where('userId', isEqualTo: currentUser?.uid)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+
+                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                            return Card(
+                              margin: EdgeInsets.only(bottom: 8),
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Text('No responses received yet'),
+                              ),
+                            );
+                          }
+
+                          List<Widget> responseWidgets = [];
+                          bool hasAnyResponses = false;
+
+                          for (var doc in snapshot.data!.docs) {
+                            responseWidgets.add(
+                              StreamBuilder<QuerySnapshot>(
+                                stream: FirebaseFirestore.instance
+                                    .collection('requirements')
+                                    .doc(doc.id)
+                                    .collection('responses')
+                                    .orderBy('createdAt', descending: true)
+                                    .limit(3)
+                                    .snapshots(),
+                                builder: (context, responseSnapshot) {
+                                  if (responseSnapshot.connectionState == ConnectionState.waiting) {
+                                    return Center(child: CircularProgressIndicator());
+                                  }
+                                  
+                                  if (!responseSnapshot.hasData || responseSnapshot.data!.docs.isEmpty) {
+                                    return SizedBox();
+                                  }
+                                  
+                                  hasAnyResponses = true;
+                                  
+                                  return Column(
+                                    children: responseSnapshot.data!.docs.map((response) {
+                                      final responseData = response.data() as Map<String, dynamic>;
+                                      return Card(
+                                        margin: EdgeInsets.only(bottom: 8),
+                                        child: ListTile(
+                                          title: Text(responseData['responderName'] ?? 'Anonymous'),
+                                          subtitle: Text(responseData['message'] ?? ''),
+                                          trailing: _buildStatusChip(responseData['status']),
+                                          onTap: () {
+                                            Navigator.pushNamed(
+                                              context,
+                                              '/requirement_detail',
+                                              arguments: doc.id,
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    }).toList(),
+                                  );
+                                },
+                              ),
+                            );
+                          }
+                          
+                          if (!hasAnyResponses) {
+                            return Card(
+                              margin: EdgeInsets.only(bottom: 8),
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Text('No responses received yet'),
+                              ),
+                            );
+                          }
+                          
+                          return Column(children: responseWidgets);
+                        },
+                      ),
+                      SizedBox(height: 32),
+                      
+                      // Sent Responses Section
+                      Text(
+                        'Your Sent Responses',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      StreamBuilder<QuerySnapshot>(
+                        stream: FirebaseFirestore.instance
+                            .collectionGroup('responses')
+                            .where('responderId', isEqualTo: currentUser?.uid)
+                            .orderBy('createdAt', descending: true)
+                            .limit(5)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+
+                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                            return Card(
+                              margin: EdgeInsets.only(bottom: 8),
+                              child: Padding(
+                                padding: EdgeInsets.all(16),
+                                child: Text('No responses sent yet'),
+                              ),
+                            );
+                          }
+
+                          return Column(
+                            children: snapshot.data!.docs.map((doc) {
+                              final responseData = doc.data() as Map<String, dynamic>;
+                              return Card(
+                                margin: EdgeInsets.only(bottom: 8),
+                                child: ListTile(
+                                  title: Text('Response to: ${responseData['projectName'] ?? 'Requirement'}'),
+                                  subtitle: Text(responseData['message'] ?? ''),
+                                  trailing: _buildStatusChip(responseData['status']),
+                                  onTap: () {
+                                    // Get the parent requirement ID
+                                    final requirementId = doc.reference.parent.parent!.id;
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/requirement_detail',
+                                      arguments: requirementId,
+                                    );
+                                  },
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        },
+                      ),
                     ],
                   ),
                 ),
@@ -371,20 +643,36 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Move these methods outside the build method
   Widget _buildStatusChip(String? status) {
+    Color backgroundColor;
+    Color textColor;
+    
+    switch (status?.toLowerCase()) {
+      case 'accepted':
+        backgroundColor = Colors.green[100]!;
+        textColor = Colors.green[900]!;
+        break;
+      case 'rejected':
+        backgroundColor = Colors.red[100]!;
+        textColor = Colors.red[900]!;
+        break;
+      default:
+        backgroundColor = Colors.orange[100]!;
+        textColor = Colors.orange[900]!;
+    }
+
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: _getStatusColor(status),
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
-        (status ?? 'NEW').toUpperCase(),
+        (status ?? 'PENDING').toUpperCase(),
         style: TextStyle(
-          color: _getStatusTextColor(status),
-          fontWeight: FontWeight.bold,
+          color: textColor,
           fontSize: 12,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -466,3 +754,27 @@ class _HomeScreenState extends State<HomeScreen> {
   //   }
   // }
 }
+
+String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return '';
+    
+    DateTime dateTime;
+    if (timestamp is Timestamp) {
+      dateTime = timestamp.toDate();
+    } else {
+      return '';
+    }
+    
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+    
+    if (difference.inDays > 0) {
+      return '${difference.inDays}d ago';
+    } else if (difference.inHours > 0) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inMinutes > 0) {
+      return '${difference.inMinutes}m ago';
+    } else {
+      return 'Just now';
+    }
+  }

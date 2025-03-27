@@ -10,6 +10,7 @@ import 'screens/requirements_screen.dart';
 import 'screens/requirement_form_screen.dart';
 import 'screens/requirement_matching.dart';
 import 'screens/requirement_detail_screen.dart';
+import 'screens/conversation_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,6 +39,11 @@ class MyApp extends StatelessWidget {
             builder: (context) => RequirementDetailScreen(
               requirementId: settings.arguments as String,
             ),
+          );
+        }
+        if (settings.name == '/conversation') {
+          return MaterialPageRoute(
+            builder: (context) => ConversationScreen(),
           );
         }
         return null;

@@ -323,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             .collection('requirements')
                             .where('userId', isEqualTo: currentUser?.uid)
                             .orderBy('createdAt', descending: true)
-                            .limit(3)
+                            .limit(5)
                             .snapshots(),
                         builder: (context, snapshot) {
                           if (snapshot.hasError) {
@@ -331,119 +331,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           }
 
                           if (snapshot.connectionState == ConnectionState.waiting) {
-                            return Center(child: CircularProgressIndicator());
+                            return CircularProgressIndicator();
                           }
 
-                          final docs = snapshot.data!.docs;
+                          final requirements = snapshot.data?.docs ?? [];
                           
-                          if (docs.isEmpty) {
-                            return Card(
-                              child: Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Column(
-                                  children: [
-                                    Icon(Icons.add_circle_outline, size: 48, color: Colors.grey),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      'No requirements yet',
-                                      style: TextStyle(fontSize: 16),
-                                    ),
-                                    SizedBox(height: 8),
-                                    ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.pushNamed(context, '/requirement_form');
-                                      },
-                                      child: Text('Add Requirement'),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFF0D4C3A),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }
-                          
-                          return ListView.builder(
-                            shrinkWrap: true,
-                            physics: NeverScrollableScrollPhysics(),
-                            itemCount: docs.length,
-                            itemBuilder: (context, index) {
-                              final data = docs[index].data() as Map<String, dynamic>;
-                              
+                          return Column(
+                            children: requirements.map((doc) {
+                              final data = doc.data() as Map<String, dynamic>;
                               return Card(
-                                margin: EdgeInsets.only(bottom: 12),
+                                margin: EdgeInsets.only(bottom: 8),
                                 child: ListTile(
-                                  title: Text(
-                                    data['projectName'] ?? 'Unnamed Project',
-                                    style: TextStyle(fontWeight: FontWeight.bold),
-                                  ),
+                                  title: Text(data['projectName'] ?? 'Unnamed Project'),
                                   subtitle: Text(
-                                    '${data['assetType'] ?? 'Property'} - ${data['configuration'] ?? ''}',
+                                    '${data['assetType'] ?? ''} - ${data['configuration'] ?? ''}'
                                   ),
-                                  trailing: Chip(
-                                    label: Text(data['status']?.toUpperCase() ?? 'NEW'),
-                                    backgroundColor: _getStatusColor(data['status']),
-                                  ),
-                                  onTap: () {
-                                    // Navigate to requirement details
-                                  },
+                                  trailing: _buildStatusChip(data['status']),
                                 ),
                               );
-                            },
+                            }).toList(),
                           );
                         },
-                      ),
-                      
-                      SizedBox(height: 32),
-                      
-                      // Matching requirements
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Matching Requirements',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/requirement_matching');
-                            },
-                            child: Text('View All'),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      
-                      // Placeholder for matching requirements
-                      Card(
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Icon(Icons.search, size: 48, color: Colors.grey),
-                              SizedBox(height: 16),
-                              Text(
-                                'Find matching requirements based on your location and preferences',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(fontSize: 16),
-                              ),
-                              SizedBox(height: 16),
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.pushNamed(context, '/requirement_matching');
-                                },
-                                child: Text('Find Matches'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xFF0D4C3A),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
                     ],
                   ),
@@ -455,12 +363,59 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
-  Widget _buildActionCard(BuildContext context, {
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
+
+  // Move these methods outside the build method
+  Widget _buildStatusChip(String? status) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: _getStatusColor(status),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        (status ?? 'NEW').toUpperCase(),
+        style: TextStyle(
+          color: _getStatusTextColor(status),
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  // Remove the duplicate _getStatusColor at the bottom of the file and keep this version
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'new':
+        return Colors.blue[50]!;
+      case 'approved':
+        return Colors.green[50]!;
+      case 'rejected':
+        return Colors.red[50]!;
+      case 'completed':
+        return Colors.blue[100]!;
+      default:
+        return Colors.orange[50]!;
+    }
+  }
+
+  Color _getStatusTextColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'new':
+        return Colors.blue[700]!;
+      case 'approved':
+        return Colors.green[700]!;
+      case 'rejected':
+        return Colors.red[700]!;
+      case 'completed':
+        return Colors.blue[700]!;
+      default:
+        return Colors.orange[700]!;
+    }
+  }
+
+  Widget _buildActionCard(BuildContext context,
+    {required IconData icon, required String title, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       child: Card(
@@ -487,19 +442,20 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
   
-  Color _getStatusColor(String? status) {
-    switch (status) {
-      case 'approved':
-        return Colors.green[100]!;
-      case 'rejected':
-        return Colors.red[100]!;
-      case 'completed':
-        return Colors.blue[100]!;
-      case 'new':
-        return Colors.blue[50]!;
-      case 'pending':
-      default:
-        return Colors.orange[50]!;
-    }
-  }
+  // Remove this duplicate method
+  // Color _getStatusColor(String? status) {
+  //   switch (status) {
+  //     case 'approved':
+  //       return Colors.green[100]!;
+  //     case 'rejected':
+  //       return Colors.red[100]!;
+  //     case 'completed':
+  //       return Colors.blue[100]!;
+  //     case 'new':
+  //       return Colors.blue[50]!;
+  //     case 'pending':
+  //     default:
+  //       return Colors.orange[50]!;
+  //   }
+  // }
 }

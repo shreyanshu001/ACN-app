@@ -335,30 +335,56 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
     
     final timestamp = FieldValue.serverTimestamp();
     
-    // Create response document with additional fields
-    await FirebaseFirestore.instance
+    // Get the requirement details to include in the response
+    DocumentSnapshot requirementDoc = await FirebaseFirestore.instance
         .collection('requirements')
         .doc(widget.requirementId)
+        .get();
+    
+    Map<String, dynamic> requirementData = {};
+    if (requirementDoc.exists) {
+      requirementData = requirementDoc.data() as Map<String, dynamic>;
+    }
+    
+    // Create response with the exact structure needed for dashboard
+    await FirebaseFirestore.instance
         .collection('responses')
         .add({
       'message': text,
       'responderId': currentUser?.uid,
+      'requirementId': widget.requirementId,
       'status': 'pending',
       'createdAt': timestamp,
       'projectName': projectName,
-      'isActive': true,  // Add this field
-      'lastUpdated': timestamp,  // Add this field
-      'requirementId': widget.requirementId,  // Add this field
-      'ownerRead': false,  // Add this field
+      'isActive': true,
+      'lastUpdated': timestamp,
+      'ownerRead': false,
+      'ownerId': requirementOwnerId,
+      'responseType': 'message',
+      'responderName': currentUser?.displayName ?? 'Anonymous',
+      'responderEmail': currentUser?.email ?? '',
+      'responderPhone': '',
+      'responderProfilePic': currentUser?.photoURL ?? '',
+      'requirement': {
+        'id': widget.requirementId,
+        'projectName': projectName,
+        'title': requirementData['title'] ?? '',
+        'description': requirementData['description'] ?? '',
+      },
+      // Add these fields that might be needed by the dashboard
+      'type': 'message',
+      'read': false,
+      'archived': false,
+      'userId': currentUser?.uid,
     });
-    
-    // Find existing conversation
+
+    // Rest of the conversation code remains the same...
     QuerySnapshot conversationQuery = await FirebaseFirestore.instance
         .collection('conversations')
         .where('requirementId', isEqualTo: widget.requirementId)
         .where('participants', arrayContains: currentUser?.uid)
         .get();
-    
+
     String conversationId;
     
     if (conversationQuery.docs.isEmpty) {

@@ -28,6 +28,10 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   final List<String> _assetTypes = ['Residential', 'Commercial', 'Land', 'Industrial'];
   final List<String> _configurations = ['1BHK', '2BHK', '3BHK', '4BHK', 'Villa', 'Plot', 'Office Space'];
   
+  // Add this new variable for Needed/Having selection
+  String? _propertyStatus;
+  final List<String> _propertyStatusOptions = ['Needed', 'Having'];
+  
   // Add these new variables for image upload
   final ImagePicker _picker = ImagePicker();
   List<File> _selectedImages = [];
@@ -172,8 +176,9 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
           'budgetTo': _budgetToController.text.isNotEmpty ? double.parse(_budgetToController.text) : null,
           'asPerMarketPrice': _asPerMarketPrice,
           'imageUrls': imageUrls,
-          'status': 'new',  // Change this from 'pending' to 'new'
-          'createdAt': FieldValue.serverTimestamp(),  // Remove the duplicate createdAt
+          'status': 'new',
+          'propertyStatus': _propertyStatus,  // Add the new field
+          'createdAt': FieldValue.serverTimestamp(),
         });
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -233,6 +238,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       _selectedAssetType = null;
       _selectedConfiguration = null;
       _asPerMarketPrice = false;
+      _propertyStatus = null;  // Clear the property status
+      _selectedImages = [];    // Also clear selected images
     });
   }
 
@@ -300,7 +307,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  maxLines: 4,
+                  maxLines: 2,  // Changed from 4 to 2
                 ),
                 SizedBox(height: 16),
                 
@@ -344,6 +351,42 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please select an asset type';
+                          }
+                          return null;
+                        },
+                      ),
+                      SizedBox(height: 16),
+                      
+                      // Property Status (Needed/Having)
+                      Text(
+                        'Property Status *',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _propertyStatus,
+                        decoration: InputDecoration(
+                          hintText: 'Select Property Status',
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        items: _propertyStatusOptions.map((String status) {
+                          return DropdownMenuItem<String>(
+                            value: status,
+                            child: Text(status),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _propertyStatus = newValue;
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select property status';
                           }
                           return null;
                         },

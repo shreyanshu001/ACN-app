@@ -1,0 +1,19 @@
+{
+  "name": "ac",
+  "version": "1.0.0",
+  "description": "Below is a well-structured `README.md` file for your ACN (Agent Collaboration Network) Flutter project. It includes a project description, features, setup instructions, and usage details. You can save this as `README.md` in your project root directory (`acn/`).",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "firebase-admin": "^13.2.0"
+  }
+}

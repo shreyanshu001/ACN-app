@@ -65,3 +65,5 @@ build
 coverage/
 pubspec.lock
 ios/Runner.xcodeproj/xcshareddata/xcschemes/Runner.xcscheme
+.DS_Store
+ios/.DS_Store

@@ -9,6 +9,11 @@ import 'package:path/path.dart' as path;
 import 'package:uuid/uuid.dart';
 
 class RequirementFormScreen extends StatefulWidget {
+  final bool isEditing;
+  final String? requirementId;
+  
+  RequirementFormScreen({this.isEditing = false, this.requirementId});
+  
   @override
   _RequirementFormScreenState createState() => _RequirementFormScreenState();
 }

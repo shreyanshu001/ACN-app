@@ -357,9 +357,8 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       ),
     );
   }
-}
-
-// Add this to your _RequirementsScreenState class
+  
+  // Add these variables and method inside the class
   bool _isLoadingMore = false;
   DocumentSnapshot? _lastDocument;
   bool _hasMoreData = true;
@@ -399,3 +398,4 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
       });
     }
   }
+}

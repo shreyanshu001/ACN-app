@@ -45,7 +45,7 @@ dependencies:
   geolocator: ^10.0.0
   geocoding: ^2.1.0
   google_sign_in: ^6.3.0
-  intl: ^0.20.2
+  intl: ^0.19.0  # Downgrade this line
   firebase_admin: ^0.2.0
   args: ^2.3.1
 

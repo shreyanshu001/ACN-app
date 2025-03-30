@@ -70,3 +70,4 @@ ios/.DS_Store
 
 firebase-service-account.json
 node_modules/
+pubspec.lock

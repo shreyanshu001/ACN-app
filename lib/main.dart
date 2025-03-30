@@ -1,5 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Add this import
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +13,7 @@ import 'screens/requirement_matching.dart';
 import 'screens/requirement_detail_screen.dart';
 import 'screens/conversation_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
+import 'screens/superadmin_login_screen.dart'; // Add this import
 import 'services/auth_service.dart';
 import 'services/loading_service.dart';
 
@@ -60,7 +61,7 @@ class MyApp extends StatelessWidget {
             foregroundColor: Colors.white,
           ),
         ),
-        home: AuthWrapper(),
+        home: AuthWrapper(),  // Keep this
         onGenerateRoute: (settings) {
           if (settings.name == '/requirement_detail') {
             return MaterialPageRoute(
@@ -77,11 +78,11 @@ class MyApp extends StatelessWidget {
           return null;
         },
         routes: {
-          '/': (context) => HomeScreen(),
+          // Remove the '/' route since you're using home
           '/login': (context) => LoginScreen(),
           '/admin_dashboard': (context) => AdminDashboardScreen(),
-          '/edit_requirement': (context) =>
-              RequirementFormScreen(isEditing: true),
+          '/superadmin_login': (context) => SuperAdminLoginScreen(), // Add this if you create a dedicated screen
+          '/edit_requirement': (context) => RequirementFormScreen(isEditing: true),
           '/profile': (context) => ProfileScreen(),
           '/requirements': (context) => RequirementsScreen(),
           '/requirement_form': (context) => RequirementFormScreen(),
@@ -112,11 +113,13 @@ class AuthWrapper extends StatelessWidget {
             ),
           );
         }
-
+        
+        // If user is superadmin (based on email), redirect to admin dashboard
         if (snapshot.data == true) {
           return AdminDashboardScreen();
         }
-
+        
+        // Regular users go to home screen
         return HomeScreen();
       },
     );

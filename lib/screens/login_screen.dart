@@ -83,21 +83,37 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       appBar: AppBar(title: Text('ACN Login')),
       body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ElevatedButton.icon(
-                onPressed: _handleGoogleSignIn,
-                icon: Image.asset('assets/google_logo.png', height: 24),
-                label: Text('Sign in with Google'),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  minimumSize: Size(250, 50),
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(24),
+          child: Form(
+            child: Column(  // Add Column widget here
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: _handleGoogleSignIn,
+                  icon: Image.asset('assets/google_logo.png', height: 24),
+                  label: Text('Sign in with Google'),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    minimumSize: Size(250, 50),
+                  ),
                 ),
-              ),
-            ],
+                // Add this at the bottom of your form, after the login button
+                SizedBox(height: 16),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/superadmin_login');
+                  },
+                  child: Text(
+                    'Superadmin Login',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

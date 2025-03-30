@@ -358,3 +358,44 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
     );
   }
 }
+
+// Add this to your _RequirementsScreenState class
+  bool _isLoadingMore = false;
+  DocumentSnapshot? _lastDocument;
+  bool _hasMoreData = true;
+  
+  Future<void> _loadMoreRequirements() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+    
+    setState(() {
+      _isLoadingMore = true;
+    });
+    
+    try {
+      Query<Map<String, dynamic>> query = _buildQuery();
+      
+      if (_lastDocument != null) {
+        query = query.startAfterDocument(_lastDocument!);
+      }
+      
+      final snapshot = await query.limit(_itemsPerPage).get();
+      
+      if (snapshot.docs.length < _itemsPerPage) {
+        _hasMoreData = false;
+      }
+      
+      if (snapshot.docs.isNotEmpty) {
+        _lastDocument = snapshot.docs.last;
+      }
+      
+      // Update your UI with the new data
+      // ...
+      
+    } catch (e) {
+      print('Error loading more requirements: $e');
+    } finally {
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }

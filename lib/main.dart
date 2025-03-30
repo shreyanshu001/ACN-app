@@ -49,8 +49,10 @@ class MyApp extends StatelessWidget {
         return null;
       },
       routes: {
+        '/': (context) => HomeScreen(),
         '/login': (context) => LoginScreen(),
-        '/home': (context) => HomeScreen(),
+        '/admin_dashboard': (context) => AdminDashboardScreen(),
+        '/edit_requirement': (context) => RequirementFormScreen(isEditing: true),
         '/profile': (context) => ProfileScreen(),
         '/requirements': (context) => RequirementsScreen(),
         '/requirement_form': (context) => RequirementFormScreen(),

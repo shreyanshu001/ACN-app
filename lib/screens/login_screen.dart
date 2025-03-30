@@ -26,6 +26,9 @@ class _LoginScreenState extends State<LoginScreen> {
       final UserCredential userCredential = 
           await _auth.signInWithCredential(credential);
       
+      // Check if the user is a superadmin (Briqko)
+      bool isSuperAdmin = userCredential.user!.email == 'briqko@gmail.com';
+      
       // Create/Update user document in Firestore
       await FirebaseFirestore.instance
           .collection('agents')
@@ -36,7 +39,13 @@ class _LoginScreenState extends State<LoginScreen> {
         'photoURL': userCredential.user!.photoURL,
         'verified': false,
         'createdAt': FieldValue.serverTimestamp(),
+        'isSuperAdmin': isSuperAdmin, // Add superadmin flag
       }, SetOptions(merge: true));
+      
+      // If superadmin, navigate to admin dashboard
+      if (isSuperAdmin) {
+        Navigator.pushReplacementNamed(context, '/admin_dashboard');
+      }
 
     } catch (e) {
       ScaffoldMessenger.of(context)

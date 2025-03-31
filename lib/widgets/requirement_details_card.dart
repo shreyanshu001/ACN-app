@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class RequirementDetailsCard extends StatelessWidget {
   final Map<String, dynamic> data;
 
-  const RequirementDetailsCard({required this.data});
+  const RequirementDetailsCard({super.key, required this.data});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,8 @@ class RequirementDetailsCard extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(data['details'] ?? 'No details provided'),
-            if (data['imageUrls'] != null && (data['imageUrls'] as List).isNotEmpty)
+            if (data['imageUrls'] != null &&
+                (data['imageUrls'] as List).isNotEmpty)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

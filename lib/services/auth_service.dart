@@ -19,23 +19,21 @@ class AuthService {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) return null;
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential = 
+      final UserCredential userCredential =
           await _auth.signInWithCredential(credential);
-      
+
       // Check if the user is a superadmin (Briqko)
       bool isSuperAdmin = userCredential.user!.email == 'briqko@gmail.com';
-      
+
       // Create/Update user document in Firestore
-      await _firestore
-          .collection('agents')
-          .doc(userCredential.user!.uid)
-          .set({
+      await _firestore.collection('agents').doc(userCredential.user!.uid).set({
         'email': userCredential.user!.email,
         'name': userCredential.user!.displayName,
         'photoURL': userCredential.user!.photoURL,
@@ -43,10 +41,9 @@ class AuthService {
         'createdAt': FieldValue.serverTimestamp(),
         'isSuperAdmin': isSuperAdmin,
       }, SetOptions(merge: true));
-      
+
       return userCredential;
     } catch (e) {
-      print('Error signing in with Google: $e');
       return null;
     }
   }
@@ -60,16 +57,14 @@ class AuthService {
   // Check if user is admin
   Future<bool> isUserAdmin() async {
     if (currentUser == null) return false;
-    
+
     try {
-      DocumentSnapshot userDoc = await _firestore
-          .collection('agents')
-          .doc(currentUser!.uid)
-          .get();
-      
-      return userDoc.exists && (userDoc.data() as Map<String, dynamic>)['isSuperAdmin'] == true;
+      DocumentSnapshot userDoc =
+          await _firestore.collection('agents').doc(currentUser!.uid).get();
+
+      return userDoc.exists &&
+          (userDoc.data() as Map<String, dynamic>)['isSuperAdmin'] == true;
     } catch (e) {
-      print('Error checking admin status: $e');
       return false;
     }
   }

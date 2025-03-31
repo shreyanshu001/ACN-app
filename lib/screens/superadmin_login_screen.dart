@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
 class SuperAdminLoginScreen extends StatefulWidget {
+  const SuperAdminLoginScreen({super.key});
+
   @override
   _SuperAdminLoginScreenState createState() => _SuperAdminLoginScreenState();
 }
@@ -32,16 +34,16 @@ class _SuperAdminLoginScreenState extends State<SuperAdminLoginScreen> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      
+
       // Sign in with email and password
       await FirebaseAuth.instance.signInWithEmailAndPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      
+
       // Check if user is superadmin
       final isAdmin = await authService.isUserAdmin();
-      
+
       if (!isAdmin) {
         await FirebaseAuth.instance.signOut();
         setState(() {
@@ -50,7 +52,7 @@ class _SuperAdminLoginScreenState extends State<SuperAdminLoginScreen> {
         });
         return;
       }
-      
+
       // Navigate to admin dashboard
       Navigator.pushReplacementNamed(context, '/admin_dashboard');
     } on FirebaseAuthException catch (e) {
@@ -84,7 +86,7 @@ class _SuperAdminLoginScreenState extends State<SuperAdminLoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Image.asset(
-                  'assets/images/logo.png',
+                  'assets/briqko.png',
                   height: 100,
                   width: 100,
                 ),

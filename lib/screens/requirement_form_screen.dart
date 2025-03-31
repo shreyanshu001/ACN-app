@@ -11,9 +11,10 @@ import 'package:uuid/uuid.dart';
 class RequirementFormScreen extends StatefulWidget {
   final bool isEditing;
   final String? requirementId;
-  
-  RequirementFormScreen({this.isEditing = false, this.requirementId});
-  
+
+  const RequirementFormScreen(
+      {super.key, this.isEditing = false, this.requirementId});
+
   @override
   _RequirementFormScreenState createState() => _RequirementFormScreenState();
 }
@@ -25,100 +26,111 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   final _areaController = TextEditingController();
   final _budgetFromController = TextEditingController();
   final _budgetToController = TextEditingController();
-  
+
   String? _selectedAssetType;
   String? _selectedConfiguration;
   bool _asPerMarketPrice = false;
-  
-  final List<String> _assetTypes = ['Residential', 'Commercial', 'Land', 'Industrial'];
-  final List<String> _configurations = ['1BHK', '2BHK', '3BHK', '4BHK', 'Villa', 'Plot', 'Office Space'];
-  
+
+  final List<String> _assetTypes = [
+    'Residential',
+    'Commercial',
+    'Land',
+    'Industrial'
+  ];
+  final List<String> _configurations = [
+    '1BHK',
+    '2BHK',
+    '3BHK',
+    '4BHK',
+    'Villa',
+    'Plot',
+    'Office Space'
+  ];
+
   // Add this new variable for Needed/Having selection
   String? _propertyStatus;
   final List<String> _propertyStatusOptions = ['Needed', 'Having'];
-  
+
   // Add these new variables for image upload
   final ImagePicker _picker = ImagePicker();
   List<File> _selectedImages = [];
   bool _isUploading = false;
-  
+
   // AWS S3 configuration using environment variables
   final String _s3Bucket = dotenv.env['AWS_S3_BUCKET'] ?? '';
   final String _s3Region = dotenv.env['AWS_S3_REGION'] ?? '';
   final String _s3AccessKey = dotenv.env['AWS_ACCESS_KEY'] ?? '';
   final String _s3SecretKey = dotenv.env['AWS_SECRET_KEY'] ?? '';
-  
+
   // Add this method to check S3 configuration
   bool _isS3ConfigValid() {
-    if (_s3Bucket.isEmpty || _s3Region.isEmpty || 
-        _s3AccessKey.isEmpty || _s3SecretKey.isEmpty) {
-      print('S3 config invalid: Bucket: $_s3Bucket, Region: $_s3Region');
+    if (_s3Bucket.isEmpty ||
+        _s3Region.isEmpty ||
+        _s3AccessKey.isEmpty ||
+        _s3SecretKey.isEmpty) {
       return false;
     }
     return true;
   }
-  
+
   @override
   void initState() {
     super.initState();
     // Print environment variables for debugging
-    print('Env variables: AWS_S3_BUCKET=${dotenv.env['AWS_S3_BUCKET']}, AWS_S3_REGION=${dotenv.env['AWS_S3_REGION']}');
   }
-  
+
   // Method to pick images
   Future<void> _pickImages() async {
     final List<XFile>? images = await _picker.pickMultiImage();
-    
+
     if (images != null && images.isNotEmpty) {
       setState(() {
-        _selectedImages.addAll(images.map((xFile) => File(xFile.path)).toList());
+        _selectedImages
+            .addAll(images.map((xFile) => File(xFile.path)).toList());
       });
     }
   }
-  
+
   // Method to take a photo
   Future<void> _takePhoto() async {
     final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-    
+
     if (photo != null) {
       setState(() {
         _selectedImages.add(File(photo.path));
       });
     }
   }
-  
+
   // Method to remove an image
   void _removeImage(int index) {
     setState(() {
       _selectedImages.removeAt(index);
     });
   }
-  
+
   // Method to upload images to S3
   Future<List<String>> _uploadImagesToS3() async {
     List<String> imageUrls = [];
-    
+
     if (_selectedImages.isEmpty) return imageUrls;
-    
+
     // Check S3 configuration first
     if (!_isS3ConfigValid()) {
-      print('S3 configuration is invalid: Bucket: $_s3Bucket, Region: $_s3Region');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('AWS S3 configuration is incomplete. Please check your .env file.'))
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              'AWS S3 configuration is incomplete. Please check your .env file.')));
       return imageUrls;
     }
-    
+
     setState(() {
       _isUploading = true;
     });
-    
+
     try {
       for (File imageFile in _selectedImages) {
-        final String fileName = '${Uuid().v4()}${path.extension(imageFile.path)}';
-        
-        print('Uploading to S3: Bucket: $_s3Bucket, Region: $_s3Region');
-        
+        final String fileName =
+            '${Uuid().v4()}${path.extension(imageFile.path)}';
         final result = await AwsS3.uploadFile(
           accessKey: _s3AccessKey,
           secretKey: _s3SecretKey,
@@ -131,23 +143,23 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
             'timestamp': DateTime.now().toIso8601String(),
           },
         );
-         
         // Fix: Check if result is not null before checking if it's not empty
         if (result != null && result.isNotEmpty) {
           imageUrls.add(result);
-        }
+        } else {}
       }
     } catch (e) {
-      print('Error uploading to S3: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to upload images: $e'))
+        SnackBar(
+          content: Text('Failed to upload images: $e'),
+        ),
       );
     } finally {
       setState(() {
         _isUploading = false;
       });
     }
-    
+    print('🎉 Final image URLs: $imageUrls');
     return imageUrls;
   }
 
@@ -155,20 +167,20 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     if (_formKey.currentState!.validate()) {
       try {
         List<String> imageUrls = [];
-        
+
         // Only try to upload images if there are images selected
         if (_selectedImages.isNotEmpty) {
           if (!_isS3ConfigValid()) {
             // Show warning but continue with submission without images
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('S3 configuration missing. Submitting without images.'))
-            );
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(
+                    'S3 configuration missing. Submitting without images.')));
           } else {
             // Upload images to S3
             imageUrls = await _uploadImagesToS3();
           }
         }
-        
+
         // Then save the requirement with image URLs
         await FirebaseFirestore.instance.collection('requirements').add({
           'userId': FirebaseAuth.instance.currentUser!.uid,
@@ -176,32 +188,35 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
           'details': _detailsController.text,
           'assetType': _selectedAssetType,
           'configuration': _selectedConfiguration,
-          'area': _areaController.text.isNotEmpty ? double.parse(_areaController.text) : null,
-          'budgetFrom': _budgetFromController.text.isNotEmpty ? double.parse(_budgetFromController.text) : null,
-          'budgetTo': _budgetToController.text.isNotEmpty ? double.parse(_budgetToController.text) : null,
+          'area': _areaController.text.isNotEmpty
+              ? double.parse(_areaController.text)
+              : null,
+          'budgetFrom': _budgetFromController.text.isNotEmpty
+              ? double.parse(_budgetFromController.text)
+              : null,
+          'budgetTo': _budgetToController.text.isNotEmpty
+              ? double.parse(_budgetToController.text)
+              : null,
           'asPerMarketPrice': _asPerMarketPrice,
           'imageUrls': imageUrls,
           'status': 'new',
-          'propertyStatus': _propertyStatus,  // Add the new field
+          'propertyStatus': _propertyStatus, // Add the new field
           'createdAt': FieldValue.serverTimestamp(),
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Requirement submitted successfully'))
-        );
-        
+            SnackBar(content: Text('Requirement submitted successfully')));
+
         Navigator.pop(context);
       } catch (e) {
         print('Error submitting requirement: $e');
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit requirement: $e'))
-        );
+            SnackBar(content: Text('Failed to submit requirement: $e')));
       }
     } else {
       // Form validation failed
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill in all required fields'))
-      );
+          SnackBar(content: Text('Please fill in all required fields')));
     }
   }
 
@@ -217,19 +232,20 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
         'responderName': FirebaseAuth.instance.currentUser!.displayName,
         'message': _detailsController.text,
         'createdAt': FieldValue.serverTimestamp(),
-        'status': 'pending',  // Can be 'pending', 'accepted', 'rejected'
+        'status': 'pending', // Can be 'pending', 'accepted', 'rejected'
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Response submitted successfully'))
+        SnackBar(
+          content: Text('Response submitted successfully'),
+        ),
       );
-      
+
       Navigator.pop(context);
     } catch (e) {
       print('Error submitting response: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit response: $e'))
-      );
+          SnackBar(content: Text('Failed to submit response: $e')));
     }
   }
 
@@ -243,8 +259,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       _selectedAssetType = null;
       _selectedConfiguration = null;
       _asPerMarketPrice = false;
-      _propertyStatus = null;  // Clear the property status
-      _selectedImages = [];    // Also clear selected images
+      _propertyStatus = null; // Clear the property status
+      _selectedImages = []; // Also clear selected images
     });
   }
 
@@ -294,7 +310,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                   },
                 ),
                 SizedBox(height: 16),
-                
+
                 // Requirement Details
                 Text(
                   'Requirement Details',
@@ -312,10 +328,10 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  maxLines: 2,  // Changed from 4 to 2
+                  maxLines: 2, // Changed from 4 to 2
                 ),
                 SizedBox(height: 16),
-                
+
                 // Asset Type and Configuration Section
                 Container(
                   padding: EdgeInsets.all(16),
@@ -361,7 +377,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                         },
                       ),
                       SizedBox(height: 16),
-                      
+
                       // Property Status (Needed/Having)
                       Text(
                         'Property Status *',
@@ -397,7 +413,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                         },
                       ),
                       SizedBox(height: 16),
-                      
+
                       // Configuration and Area
                       Row(
                         children: [
@@ -442,8 +458,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                               ],
                             ),
                           ),
-                          SizedBox(width: 16),
-                          
+                          SizedBox(width: 12),
+
                           // Area
                           Expanded(
                             child: Column(
@@ -475,7 +491,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                   ),
                 ),
                 SizedBox(height: 16),
-                
+
                 // Budget Section
                 Container(
                   padding: EdgeInsets.all(16),
@@ -507,7 +523,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                               ),
                               keyboardType: TextInputType.number,
                               validator: (value) {
-                                if (!_asPerMarketPrice && (value == null || value.isEmpty)) {
+                                if (!_asPerMarketPrice &&
+                                    (value == null || value.isEmpty)) {
                                   return 'Please enter budget';
                                 }
                                 return null;
@@ -552,7 +569,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                   ),
                 ),
                 SizedBox(height: 32),
-                
+
                 // Add this new section for image upload
                 SizedBox(height: 16),
                 Container(
@@ -648,24 +665,32 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                     ],
                   ),
                 ),
-                
+
                 // Buttons
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     OutlinedButton(
                       onPressed: _clearForm,
-                      child: Text('Clear'),
                       style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                       ),
+                      child: Text('Clear'),
                     ),
                     ElevatedButton(
-                      onPressed: _isUploading ? null : () {
-                        print('Submit button pressed');
-                        _submitRequirement();
-                      },
-                      child: _isUploading 
+                      onPressed: _isUploading
+                          ? null
+                          : () {
+                              print('Submit button pressed');
+                              _submitRequirement();
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF0D4C3A),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      ),
+                      child: _isUploading
                           ? Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -682,10 +707,6 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                               ],
                             )
                           : Text('Submit'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0D4C3A),
-                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      ),
                     ),
                   ],
                 ),
@@ -696,7 +717,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       ),
     );
   }
-  
+
   @override
   void dispose() {
     _projectNameController.dispose();

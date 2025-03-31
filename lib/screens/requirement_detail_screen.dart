@@ -6,11 +6,12 @@ import 'package:intl/intl.dart';
 
 class RequirementDetailScreen extends StatefulWidget {
   final String requirementId;
-  
-  RequirementDetailScreen({required this.requirementId});
-  
+
+  const RequirementDetailScreen({super.key, required this.requirementId});
+
   @override
-  _RequirementDetailScreenState createState() => _RequirementDetailScreenState();
+  _RequirementDetailScreenState createState() =>
+      _RequirementDetailScreenState();
 }
 
 class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
@@ -19,7 +20,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
   String? requirementOwnerId;
   String? projectName;
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -43,7 +44,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
           final data = snapshot.data!.data() as Map<String, dynamic>;
           requirementOwnerId = data['userId'];
           projectName = data['projectName'];
-          
+
           return Column(
             children: [
               // Requirement details
@@ -51,26 +52,25 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
                 padding: EdgeInsets.all(16),
                 child: RequirementDetailsCard(data: data),
               ),
-              
+
               Divider(thickness: 1),
-              
+
               // Messages section
               Expanded(
                 child: currentUser?.uid == requirementOwnerId
                     ? _buildConversationsList()
                     : _buildMessagesView(),
               ),
-              
+
               // Message input (only show if user is not the owner)
-              if (currentUser?.uid != requirementOwnerId)
-                _buildMessageInput(),
+              if (currentUser?.uid != requirementOwnerId) _buildMessageInput(),
             ],
           );
         },
       ),
     );
   }
-  
+
   Widget _buildConversationsList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -82,24 +82,26 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(child: Text('No messages yet'));
         }
-        
+
         return ListView.builder(
           padding: EdgeInsets.all(16),
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
-            final conversation = snapshot.data!.docs[index].data() as Map<String, dynamic>;
-            final List<dynamic> participants = conversation['participants'] ?? [];
+            final conversation =
+                snapshot.data!.docs[index].data() as Map<String, dynamic>;
+            final List<dynamic> participants =
+                conversation['participants'] ?? [];
             final String responderUserId = participants.firstWhere(
               (id) => id != currentUser?.uid,
               orElse: () => '',
             );
-            
+
             if (responderUserId.isEmpty) return SizedBox();
-            
+
             return FutureBuilder<DocumentSnapshot>(
               future: FirebaseFirestore.instance
                   .collection('agents')
@@ -108,10 +110,11 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
               builder: (context, userSnapshot) {
                 String userName = 'User';
                 if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                  final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                  final userData =
+                      userSnapshot.data!.data() as Map<String, dynamic>;
                   userName = userData['name'] ?? 'User';
                 }
-                
+
                 return Card(
                   margin: EdgeInsets.only(bottom: 8),
                   child: ListTile(
@@ -128,9 +131,10 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    trailing: conversation['unreadCount'] != null && 
-                              conversation['unreadCount'][currentUser?.uid] != null && 
-                              conversation['unreadCount'][currentUser?.uid] > 0
+                    trailing: conversation['unreadCount'] != null &&
+                            conversation['unreadCount'][currentUser?.uid] !=
+                                null &&
+                            conversation['unreadCount'][currentUser?.uid] > 0
                         ? Container(
                             padding: EdgeInsets.all(6),
                             decoration: BoxDecoration(
@@ -139,12 +143,14 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
                             ),
                             child: Text(
                               '${conversation['unreadCount'][currentUser?.uid]}',
-                              style: TextStyle(color: Colors.white, fontSize: 12),
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 12),
                             ),
                           )
                         : null,
                     onTap: () {
-                      _openConversation(snapshot.data!.docs[index].id, responderUserId);
+                      _openConversation(
+                          snapshot.data!.docs[index].id, responderUserId);
                     },
                   ),
                 );
@@ -155,7 +161,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
       },
     );
   }
-  
+
   Widget _buildMessagesView() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -165,10 +171,15 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
           .limit(1)
           .snapshots(),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+              child: Text('Error loading conversations: ${snapshot.error}'));
+        }
+
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(
             child: Padding(
@@ -180,12 +191,20 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
             ),
           );
         }
-        
+
+        final conversationDoc = snapshot.data!.docs.first;
+
+        // Add document existence check
+        if (!conversationDoc.exists) {
+          return Center(child: Text('Conversation not found'));
+        }
+        final conversationData =
+            conversationDoc.data() as Map<String, dynamic>? ?? {};
         final conversationId = snapshot.data!.docs.first.id;
-        
+
         // Mark messages as read
         _markMessagesAsRead(conversationId);
-        
+
         return StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('conversations')
@@ -197,8 +216,13 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
             if (messagesSnapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator());
             }
-            
-            if (!messagesSnapshot.hasData || messagesSnapshot.data!.docs.isEmpty) {
+            if (messagesSnapshot.hasError) {
+              return Center(child: Text('Error loading messages'));
+            }
+            // Handle empty messages
+
+            if (!messagesSnapshot.hasData ||
+                messagesSnapshot.data!.docs.isEmpty) {
               return Center(
                 child: Padding(
                   padding: EdgeInsets.all(16),
@@ -209,23 +233,30 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
                 ),
               );
             }
-            
+
             return ListView.builder(
               controller: _scrollController,
               reverse: true,
               padding: EdgeInsets.all(16),
               itemCount: messagesSnapshot.data!.docs.length,
               itemBuilder: (context, index) {
-                final message = messagesSnapshot.data!.docs[index].data() as Map<String, dynamic>;
+                final message = messagesSnapshot.data!.docs[index].data()
+                    as Map<String, dynamic>;
+                final messageDoc = messagesSnapshot.data!.docs[index];
+
+                // Critical null check added here
+                if (!messageDoc.exists) return SizedBox.shrink();
+
                 final isMe = message['senderId'] == currentUser?.uid;
                 final timestamp = message['timestamp'] as Timestamp?;
                 final dateTime = timestamp?.toDate();
-                final timeString = dateTime != null 
-                    ? DateFormat('h:mm a').format(dateTime) 
+                final timeString = dateTime != null
+                    ? DateFormat('h:mm a').format(dateTime)
                     : '';
-                
+
                 return Align(
-                  alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                  alignment:
+                      isMe ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: EdgeInsets.symmetric(vertical: 4),
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -264,7 +295,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
       },
     );
   }
-  
+
   Widget _buildMessageInput() {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -301,15 +332,15 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
       ),
     );
   }
-  
+
   void _openConversation(String conversationId, String otherUserId) {
     // Mark messages as read
     _markMessagesAsRead(conversationId);
-    
+
     // Navigate to conversation screen
     Navigator.pushNamed(
       context,
-      '/conversation',
+      '/messages',
       arguments: {
         'conversationId': conversationId,
         'otherUserId': otherUserId,
@@ -317,7 +348,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
       },
     );
   }
-  
+
   Future<void> _markMessagesAsRead(String conversationId) async {
     await FirebaseFirestore.instance
         .collection('conversations')
@@ -326,30 +357,28 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
       'unreadCount.${currentUser?.uid}': 0,
     });
   }
-  
+
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
     if (text.isEmpty || requirementOwnerId == null) return;
-    
+
     _messageController.clear();
-    
+
     final timestamp = FieldValue.serverTimestamp();
-    
+
     // Get the requirement details to include in the response
     DocumentSnapshot requirementDoc = await FirebaseFirestore.instance
         .collection('requirements')
         .doc(widget.requirementId)
         .get();
-    
+
     Map<String, dynamic> requirementData = {};
     if (requirementDoc.exists) {
       requirementData = requirementDoc.data() as Map<String, dynamic>;
     }
-    
+
     // Create response with the exact structure needed for dashboard
-    await FirebaseFirestore.instance
-        .collection('responses')
-        .add({
+    await FirebaseFirestore.instance.collection('responses').add({
       'message': text,
       'responderId': currentUser?.uid,
       'requirementId': widget.requirementId,
@@ -386,12 +415,13 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
         .get();
 
     String conversationId;
-    
+
     if (conversationQuery.docs.isEmpty) {
       // Create new conversation
-      final conversationRef = FirebaseFirestore.instance.collection('conversations').doc();
+      final conversationRef =
+          FirebaseFirestore.instance.collection('conversations').doc();
       conversationId = conversationRef.id;
-      
+
       await conversationRef.set({
         'participants': [currentUser?.uid, requirementOwnerId],
         'requirementId': widget.requirementId,
@@ -406,7 +436,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
     } else {
       // Update existing conversation
       conversationId = conversationQuery.docs.first.id;
-      
+
       await FirebaseFirestore.instance
           .collection('conversations')
           .doc(conversationId)
@@ -416,7 +446,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
         'unreadCount.$requirementOwnerId': FieldValue.increment(1),
       });
     }
-    
+
     // Add message to conversation
     await FirebaseFirestore.instance
         .collection('conversations')
@@ -428,7 +458,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
       'senderName': currentUser?.displayName,
       'timestamp': timestamp,
     });
-    
+
     // Scroll to bottom
     Future.delayed(Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -440,7 +470,7 @@ class _RequirementDetailScreenState extends State<RequirementDetailScreen> {
       }
     });
   }
-  
+
   @override
   void dispose() {
     _messageController.dispose();

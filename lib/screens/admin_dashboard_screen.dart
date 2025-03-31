@@ -3,25 +3,28 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
+  const AdminDashboardScreen({super.key});
+
   @override
   _AdminDashboardScreenState createState() => _AdminDashboardScreenState();
 }
 
-class _AdminDashboardScreenState extends State<AdminDashboardScreen> with SingleTickerProviderStateMixin {
+class _AdminDashboardScreenState extends State<AdminDashboardScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
   }
-  
+
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
   }
-  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,7 +56,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       ),
     );
   }
-  
+
   Widget _buildUsersTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('agents').snapshots(),
@@ -61,25 +64,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(child: Text('No users found'));
         }
-        
+
         return ListView.builder(
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
-            final userData = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+            final userData =
+                snapshot.data!.docs[index].data() as Map<String, dynamic>;
             final userId = snapshot.data!.docs[index].id;
-            
+
             return ListTile(
               leading: CircleAvatar(
-                backgroundImage: userData['photoURL'] != null 
-                    ? NetworkImage(userData['photoURL']) 
+                backgroundImage: userData['photoURL'] != null
+                    ? NetworkImage(userData['photoURL'])
                     : null,
-                child: userData['photoURL'] == null 
-                    ? Icon(Icons.person) 
-                    : null,
+                child: userData['photoURL'] == null ? Icon(Icons.person) : null,
               ),
               title: Text(userData['name'] ?? 'Unknown'),
               subtitle: Text(userData['email'] ?? ''),
@@ -98,7 +100,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       },
     );
   }
-  
+
   Widget _buildRequirementsTab() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('requirements').snapshots(),
@@ -106,17 +108,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(child: Text('No requirements found'));
         }
-        
+
         return ListView.builder(
           itemCount: snapshot.data!.docs.length,
           itemBuilder: (context, index) {
-            final requirementData = snapshot.data!.docs[index].data() as Map<String, dynamic>;
+            final requirementData =
+                snapshot.data!.docs[index].data() as Map<String, dynamic>;
             final requirementId = snapshot.data!.docs[index].id;
-            
+
             return Card(
               margin: EdgeInsets.all(8),
               child: Padding(
@@ -138,7 +141,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                       children: [
                         Chip(
                           label: Text(requirementData['status'] ?? 'Unknown'),
-                          backgroundColor: _getStatusColor(requirementData['status']),
+                          backgroundColor:
+                              _getStatusColor(requirementData['status']),
                         ),
                         SizedBox(width: 8),
                         if (requirementData['assetType'] != null)
@@ -153,19 +157,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                           icon: Icons.check_circle,
                           label: 'Approve',
                           color: Colors.green,
-                          onPressed: () => _updateRequirementStatus(requirementId, 'approved'),
+                          onPressed: () => _updateRequirementStatus(
+                              requirementId, 'approved'),
                         ),
                         _buildActionButton(
                           icon: Icons.cancel,
                           label: 'Decline',
                           color: Colors.red,
-                          onPressed: () => _updateRequirementStatus(requirementId, 'declined'),
+                          onPressed: () => _updateRequirementStatus(
+                              requirementId, 'declined'),
                         ),
                         _buildActionButton(
                           icon: Icons.edit,
                           label: 'Edit',
                           color: Colors.blue,
-                          onPressed: () => _editRequirement(requirementId, requirementData),
+                          onPressed: () =>
+                              _editRequirement(requirementId, requirementData),
                         ),
                         _buildActionButton(
                           icon: Icons.delete,
@@ -184,7 +191,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       },
     );
   }
-  
+
   Widget _buildActionButton({
     required IconData icon,
     required String label,
@@ -202,7 +209,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       ),
     );
   }
-  
+
   Color _getStatusColor(String? status) {
     switch (status) {
       case 'approved':
@@ -217,14 +224,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
         return Colors.grey;
     }
   }
-  
-  Future<void> _updateRequirementStatus(String requirementId, String status) async {
+
+  Future<void> _updateRequirementStatus(
+      String requirementId, String status) async {
     try {
       await FirebaseFirestore.instance
           .collection('requirements')
           .doc(requirementId)
           .update({'status': status});
-          
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Requirement status updated to $status')),
       );
@@ -234,34 +242,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       );
     }
   }
-  
+
   Future<void> _deleteRequirement(String requirementId) async {
     try {
       // Show confirmation dialog
       bool confirm = await showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('Confirm Deletion'),
-          content: Text('Are you sure you want to delete this requirement?'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text('Cancel'),
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Confirm Deletion'),
+              content:
+                  Text('Are you sure you want to delete this requirement?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text('Delete'),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text('Delete'),
-            ),
-          ],
-        ),
-      ) ?? false;
-      
+          ) ??
+          false;
+
       if (confirm) {
         await FirebaseFirestore.instance
             .collection('requirements')
             .doc(requirementId)
             .delete();
-            
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Requirement deleted successfully')),
         );
@@ -272,8 +282,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
       );
     }
   }
-  
-  void _editRequirement(String requirementId, Map<String, dynamic> requirementData) {
+
+  void _editRequirement(
+      String requirementId, Map<String, dynamic> requirementData) {
     // Navigate to edit screen with requirement data
     Navigator.pushNamed(
       context,

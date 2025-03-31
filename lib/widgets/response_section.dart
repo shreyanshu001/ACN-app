@@ -7,6 +7,7 @@ class ResponseSection extends StatelessWidget {
   final TextEditingController responseController;
 
   const ResponseSection({
+    super.key,
     required this.requirementId,
     required this.responseController,
   });

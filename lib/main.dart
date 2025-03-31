@@ -1,16 +1,15 @@
+import 'package:acn/screens/requirement_detail_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
-import 'firebase_options.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/requirements_screen.dart';
 import 'screens/requirement_form_screen.dart';
 import 'screens/requirement_matching.dart';
-import 'screens/requirement_detail_screen.dart';
 import 'screens/conversation_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/superadmin_login_screen.dart'; // Add this import
@@ -22,9 +21,7 @@ void main() async {
 
   try {
     await dotenv.load(fileName: ".env");
-    print("Environment variables loaded successfully");
   } catch (e) {
-    print("Warning: Failed to load .env file: $e");
     // Continue execution, your code has fallbacks
   }
 
@@ -34,7 +31,7 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   final AuthService _authService = AuthService();
-
+  MyApp({super.key});
   // In MyApp build method
   @override
   Widget build(BuildContext context) {
@@ -51,7 +48,8 @@ class MyApp extends StatelessWidget {
           create: (_) => LoadingService(),
         ),
       ],
-      child: MaterialApp(  // Removed ErrorBoundary wrapper
+      child: MaterialApp(
+        // Removed ErrorBoundary wrapper
         title: 'ACN',
         theme: ThemeData(
           primarySwatch: Colors.green,
@@ -61,7 +59,7 @@ class MyApp extends StatelessWidget {
             foregroundColor: Colors.white,
           ),
         ),
-        home: AuthWrapper(),  // Keep this
+        home: AuthWrapper(), // Keep this
         onGenerateRoute: (settings) {
           if (settings.name == '/requirement_detail') {
             return MaterialPageRoute(
@@ -81,12 +79,16 @@ class MyApp extends StatelessWidget {
           // Remove the '/' route since you're using home
           '/login': (context) => LoginScreen(),
           '/admin_dashboard': (context) => AdminDashboardScreen(),
-          '/superadmin_login': (context) => SuperAdminLoginScreen(), // Add this if you create a dedicated screen
-          '/edit_requirement': (context) => RequirementFormScreen(isEditing: true),
+          '/superadmin_login': (context) =>
+              SuperAdminLoginScreen(), // Add this if you create a dedicated screen
+          '/edit_requirement': (context) =>
+              RequirementFormScreen(isEditing: true),
           '/profile': (context) => ProfileScreen(),
           '/requirements': (context) => RequirementsScreen(),
           '/requirement_form': (context) => RequirementFormScreen(),
           '/requirement_matching': (context) => RequirementMatchingScreen(),
+          '/home': (context) => HomeScreen(),
+          '/messages': (context) => ConversationScreen(),
         },
       ),
     );
@@ -94,6 +96,8 @@ class MyApp extends StatelessWidget {
 }
 
 class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
   @override
   Widget build(BuildContext context) {
     final user = Provider.of<User?>(context);
@@ -113,12 +117,12 @@ class AuthWrapper extends StatelessWidget {
             ),
           );
         }
-        
+
         // If user is superadmin (based on email), redirect to admin dashboard
         if (snapshot.data == true) {
           return AdminDashboardScreen();
         }
-        
+
         // Regular users go to home screen
         return HomeScreen();
       },

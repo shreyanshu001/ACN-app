@@ -4,45 +4,48 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 
 class RequirementMatchingScreen extends StatefulWidget {
+  const RequirementMatchingScreen({super.key});
+
   @override
-  _RequirementMatchingScreenState createState() => _RequirementMatchingScreenState();
+  _RequirementMatchingScreenState createState() =>
+      _RequirementMatchingScreenState();
 }
 
 class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
   bool _isLoading = true;
   List<DocumentSnapshot> _matchingRequirements = [];
-  
+
   // User preferences
   double? _userLatitude;
   double? _userLongitude;
   double _userLocationRange = 50.0; // Default 50km
   String? _preferredAssetType;
-  
+
   // Sorting options
   String _sortBy = 'distance'; // 'distance', 'recent', 'budget'
   bool _ascending = true;
-  
+
   @override
   void initState() {
     super.initState();
     _loadUserPreferences();
   }
-  
+
   Future<void> _loadUserPreferences() async {
     if (currentUser == null) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       // Load user preferences from Firestore
       final userDoc = await FirebaseFirestore.instance
           .collection('agents')
           .doc(currentUser!.uid)
           .get();
-      
+
       if (userDoc.exists) {
         final userData = userDoc.data();
         if (userData != null) {
@@ -54,106 +57,118 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
           });
         }
       }
-      
+
       // Load matching requirements
       await _loadMatchingRequirements();
     } catch (e) {
       print('Error loading user preferences: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load preferences: $e'))
-      );
+          SnackBar(content: Text('Failed to load preferences: $e')));
     } finally {
       setState(() {
         _isLoading = false;
       });
     }
   }
-  
+
   Future<void> _loadMatchingRequirements() async {
     if (currentUser == null) return;
-    
+
     try {
       // Base query to get all requirements except user's own
       Query query = FirebaseFirestore.instance
           .collection('requirements')
           .where('userId', isNotEqualTo: currentUser!.uid);
-      
+
       // Apply asset type filter if preferred
       if (_preferredAssetType != null && _preferredAssetType!.isNotEmpty) {
         query = query.where('assetType', isEqualTo: _preferredAssetType);
       }
-      
+
       // Get the results
       final QuerySnapshot snapshot = await query.get();
       List<DocumentSnapshot> filteredDocs = snapshot.docs;
-      
+
       // Filter by distance if location is available
       if (_userLatitude != null && _userLongitude != null) {
         filteredDocs = filteredDocs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final double? reqLat = data['latitude']?.toDouble();
           final double? reqLong = data['longitude']?.toDouble();
-          
+
           if (reqLat == null || reqLong == null) return false;
-          
+
           // Calculate distance
           final double distance = Geolocator.distanceBetween(
-            _userLatitude!,
-            _userLongitude!,
-            reqLat,
-            reqLong,
-          ) / 1000; // Convert to km
-          
+                _userLatitude!,
+                _userLongitude!,
+                reqLat,
+                reqLong,
+              ) /
+              1000; // Convert to km
+
           // Store distance in the document data for sorting
           (doc.data() as Map<String, dynamic>)['distance'] = distance;
-          
+
           // Check if within range
           return distance <= _userLocationRange;
         }).toList();
       }
-      
+
       // Sort the results
       _sortRequirements(filteredDocs);
-      
+
       setState(() {
         _matchingRequirements = filteredDocs;
       });
     } catch (e) {
-      print('Error loading matching requirements: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load matching requirements: $e'))
-      );
+          SnackBar(content: Text('Failed to load matching requirements: $e')));
     }
   }
-  
+
   void _sortRequirements(List<DocumentSnapshot> docs) {
     switch (_sortBy) {
       case 'distance':
         docs.sort((a, b) {
-          final distanceA = (a.data() as Map<String, dynamic>)['distance'] ?? double.infinity;
-          final distanceB = (b.data() as Map<String, dynamic>)['distance'] ?? double.infinity;
-          return _ascending ? distanceA.compareTo(distanceB) : distanceB.compareTo(distanceA);
+          final distanceA =
+              (a.data() as Map<String, dynamic>)['distance'] ?? double.infinity;
+          final distanceB =
+              (b.data() as Map<String, dynamic>)['distance'] ?? double.infinity;
+          return _ascending
+              ? distanceA.compareTo(distanceB)
+              : distanceB.compareTo(distanceA);
         });
         break;
       case 'recent':
         docs.sort((a, b) {
-          final timestampA = (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
-          final timestampB = (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+          final timestampA =
+              (a.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
+          final timestampB =
+              (b.data() as Map<String, dynamic>)['createdAt'] as Timestamp?;
           if (timestampA == null) return _ascending ? 1 : -1;
           if (timestampB == null) return _ascending ? -1 : 1;
-          return _ascending ? timestampB.compareTo(timestampA) : timestampA.compareTo(timestampB);
+          return _ascending
+              ? timestampB.compareTo(timestampA)
+              : timestampA.compareTo(timestampB);
         });
         break;
       case 'budget':
         docs.sort((a, b) {
-          final budgetFromA = (a.data() as Map<String, dynamic>)['budgetFrom']?.toDouble() ?? 0.0;
-          final budgetFromB = (b.data() as Map<String, dynamic>)['budgetFrom']?.toDouble() ?? 0.0;
-          return _ascending ? budgetFromA.compareTo(budgetFromB) : budgetFromB.compareTo(budgetFromA);
+          final budgetFromA =
+              (a.data() as Map<String, dynamic>)['budgetFrom']?.toDouble() ??
+                  0.0;
+          final budgetFromB =
+              (b.data() as Map<String, dynamic>)['budgetFrom']?.toDouble() ??
+                  0.0;
+          return _ascending
+              ? budgetFromA.compareTo(budgetFromB)
+              : budgetFromB.compareTo(budgetFromA);
         });
         break;
     }
   }
-  
+
   void _changeSortOption(String option) {
     if (_sortBy == option) {
       // Toggle ascending/descending if same option selected
@@ -167,7 +182,7 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
         _ascending = true;
       });
     }
-    
+
     // Re-sort the list
     _sortRequirements(_matchingRequirements);
     setState(() {}); // Refresh UI
@@ -190,13 +205,17 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                     children: [
                       Icon(
                         Icons.location_on,
-                        color: _sortBy == 'distance' ? Theme.of(context).primaryColor : null,
+                        color: _sortBy == 'distance'
+                            ? Theme.of(context).primaryColor
+                            : null,
                       ),
                       SizedBox(width: 8),
                       Text('Distance'),
                       if (_sortBy == 'distance')
                         Icon(
-                          _ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                          _ascending
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
                           size: 16,
                         ),
                     ],
@@ -208,13 +227,17 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                     children: [
                       Icon(
                         Icons.access_time,
-                        color: _sortBy == 'recent' ? Theme.of(context).primaryColor : null,
+                        color: _sortBy == 'recent'
+                            ? Theme.of(context).primaryColor
+                            : null,
                       ),
                       SizedBox(width: 8),
                       Text('Most Recent'),
                       if (_sortBy == 'recent')
                         Icon(
-                          _ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                          _ascending
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
                           size: 16,
                         ),
                     ],
@@ -226,13 +249,17 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                     children: [
                       Icon(
                         Icons.monetization_on,
-                        color: _sortBy == 'budget' ? Theme.of(context).primaryColor : null,
+                        color: _sortBy == 'budget'
+                            ? Theme.of(context).primaryColor
+                            : null,
                       ),
                       SizedBox(width: 8),
                       Text('Budget'),
                       if (_sortBy == 'budget')
                         Icon(
-                          _ascending ? Icons.arrow_upward : Icons.arrow_downward,
+                          _ascending
+                              ? Icons.arrow_upward
+                              : Icons.arrow_downward,
                           size: 16,
                         ),
                     ],
@@ -288,7 +315,7 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                       ],
                     ),
                   ),
-                
+
                 // Results count
                 Padding(
                   padding: EdgeInsets.all(16),
@@ -315,11 +342,11 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                                   .update({
                                 'preferredAssetType': FieldValue.delete(),
                               });
-                              
+
                               setState(() {
                                 _preferredAssetType = null;
                               });
-                              
+
                               await _loadMatchingRequirements();
                             }
                           },
@@ -327,7 +354,7 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                     ],
                   ),
                 ),
-                
+
                 // Requirements list
                 Expanded(
                   child: _matchingRequirements.isEmpty
@@ -335,7 +362,8 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.search_off, size: 64, color: Colors.grey),
+                              Icon(Icons.search_off,
+                                  size: 64, color: Colors.grey),
                               SizedBox(height: 16),
                               Text(
                                 'No matching requirements found',
@@ -357,22 +385,28 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                       : ListView.builder(
                           itemCount: _matchingRequirements.length,
                           itemBuilder: (context, index) {
-                            final data = _matchingRequirements[index].data() as Map<String, dynamic>;
-                            final String reqId = _matchingRequirements[index].id;
-                            final double? distance = data['distance']?.toDouble();
-                            
+                            final data = _matchingRequirements[index].data()
+                                as Map<String, dynamic>;
+                            final String reqId =
+                                _matchingRequirements[index].id;
+                            final double? distance =
+                                data['distance']?.toDouble();
+
                             return Card(
-                              margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                              margin: EdgeInsets.symmetric(
+                                  vertical: 8, horizontal: 16),
                               child: Padding(
                                 padding: EdgeInsets.all(16),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          data['projectName'] ?? 'Unnamed Project',
+                                          data['projectName'] ??
+                                              'Unnamed Project',
                                           style: TextStyle(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -380,7 +414,8 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                                         ),
                                         if (distance != null)
                                           Chip(
-                                            label: Text('${distance.toStringAsFixed(1)} km'),
+                                            label: Text(
+                                                '${distance.toStringAsFixed(1)} km'),
                                             backgroundColor: distance <= 10
                                                 ? Colors.green[100]
                                                 : distance <= 30
@@ -401,7 +436,8 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                                     SizedBox(height: 12),
                                     Row(
                                       children: [
-                                        Icon(Icons.currency_rupee, color: Colors.grey[700], size: 20),
+                                        Icon(Icons.currency_rupee,
+                                            color: Colors.grey[700], size: 20),
                                         SizedBox(width: 4),
                                         Text(
                                           '₹${data['budgetFrom'] ?? 0}${data['budgetTo'] != null ? ' - ₹${data['budgetTo']}' : ''} ${data['asPerMarketPrice'] == true ? '(As per market)' : ''}',
@@ -414,7 +450,8 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                                     SizedBox(height: 8),
                                     Row(
                                       children: [
-                                        Icon(Icons.home, color: Colors.grey[700], size: 20),
+                                        Icon(Icons.home,
+                                            color: Colors.grey[700], size: 20),
                                         SizedBox(width: 4),
                                         Text(
                                           '${data['assetType'] ?? 'Property'} - ${data['configuration'] ?? ''} ${data['area'] != null ? '/ ${data['area']} sqft' : ''}',

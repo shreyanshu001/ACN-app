@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
+
   @override
   _HomeScreenState createState() => _HomeScreenState();
 }
@@ -211,13 +213,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 .set({
               'email': currentUser?.email,
               'name': currentUser?.displayName,
-              'verified': true,  // Set to true by default for now
+              'verified': true, // Set to true by default for now
               'createdAt': FieldValue.serverTimestamp(),
             });
           }
 
           final userData = snapshot.data?.data() as Map<String, dynamic>?;
-          final bool isVerified = userData?['verified'] ?? true; // Default to true if field doesn't exist
+          final bool isVerified = userData?['verified'] ??
+              true; // Default to true if field doesn't exist
 
           return SingleChildScrollView(
             child: Column(
@@ -254,7 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                       SizedBox(height: 24),
-                      
+
                       // Quick actions
                       Text(
                         'Quick Actions',
@@ -288,14 +291,15 @@ class _HomeScreenState extends State<HomeScreen> {
                             icon: Icons.compare_arrows,
                             title: 'Find Matches',
                             onTap: () {
-                              Navigator.pushNamed(context, '/requirement_matching');
+                              Navigator.pushNamed(
+                                  context, '/requirement_matching');
                             },
                           ),
                         ],
                       ),
-                      
+
                       SizedBox(height: 32),
-                      
+
                       // Messages Section
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -316,21 +320,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       SizedBox(height: 8),
-                      
+
                       // Recent conversations
                       StreamBuilder<QuerySnapshot>(
                         stream: FirebaseFirestore.instance
                             .collection('conversations')
-                            .where('participants', arrayContains: currentUser?.uid)
+                            .where('participants',
+                                arrayContains: currentUser?.uid)
                             .orderBy('lastMessageTime', descending: true)
                             .limit(5)
                             .snapshots(),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator());
                           }
 
-                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
                             return Card(
                               margin: EdgeInsets.only(bottom: 8),
                               child: Padding(
@@ -343,11 +350,15 @@ class _HomeScreenState extends State<HomeScreen> {
                           return Column(
                             children: snapshot.data!.docs.map((doc) {
                               final data = doc.data() as Map<String, dynamic>;
-                              final String otherUserId = (data['participants'] as List)
-                                  .firstWhere((id) => id != currentUser?.uid, 
+                              final participants =
+                                  List<String>.from(data['participants'] ?? []);
+                              final String otherUserId =
+                                  (data['participants'] as List).firstWhere(
+                                      (id) => id != currentUser?.uid,
                                       orElse: () => '');
-                              final String requirementId = data['requirementId'] ?? '';
-                              
+                              final String requirementId =
+                                  data['requirementId'] ?? '';
+
                               return FutureBuilder<DocumentSnapshot>(
                                 future: FirebaseFirestore.instance
                                     .collection('agents')
@@ -355,26 +366,37 @@ class _HomeScreenState extends State<HomeScreen> {
                                     .get(),
                                 builder: (context, userSnapshot) {
                                   String userName = 'User';
-                                  if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                                    final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                                  if (userSnapshot.hasData &&
+                                      userSnapshot.data!.exists) {
+                                    final userData = userSnapshot.data!.data()
+                                        as Map<String, dynamic>;
                                     userName = userData['name'] ?? 'User';
                                   }
-                                  
+
                                   return Card(
                                     margin: EdgeInsets.only(bottom: 8),
                                     child: ListTile(
                                       leading: CircleAvatar(
-                                        child: Text(userName.isNotEmpty ? userName[0] : 'U'),
+                                        child: Text(userName.isNotEmpty
+                                            ? userName[0]
+                                            : 'U'),
                                       ),
                                       title: Text(userName),
-                                      subtitle: Text(data['lastMessage'] ?? 'Start a conversation'),
+                                      subtitle: Text(data['lastMessage'] ??
+                                          'Start a conversation'),
                                       trailing: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
                                         children: [
-                                          if (data['unreadCount'] != null && 
-                                              data['unreadCount'][currentUser?.uid] != null && 
-                                              data['unreadCount'][currentUser?.uid] > 0)
+                                          if (data['unreadCount'] != null &&
+                                              data['unreadCount']
+                                                      [currentUser?.uid] !=
+                                                  null &&
+                                              data['unreadCount']
+                                                      [currentUser?.uid] >
+                                                  0)
                                             Container(
                                               padding: EdgeInsets.all(6),
                                               decoration: BoxDecoration(
@@ -383,12 +405,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                               ),
                                               child: Text(
                                                 '${data['unreadCount'][currentUser?.uid]}',
-                                                style: TextStyle(color: Colors.white, fontSize: 12),
+                                                style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 12),
                                               ),
                                             ),
                                           SizedBox(height: 4),
                                           Text(
-                                            _formatTimestamp(data['lastMessageTime']),
+                                            _formatTimestamp(
+                                                data['lastMessageTime']),
                                             style: TextStyle(fontSize: 12),
                                           ),
                                         ],
@@ -396,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       onTap: () {
                                         Navigator.pushNamed(
                                           context,
-                                          '/conversation',
+                                          '/messages',
                                           arguments: {
                                             'conversationId': doc.id,
                                             'otherUserId': otherUserId,
@@ -412,9 +437,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
-                      
+
                       SizedBox(height: 32),
-                      
+
                       // Your Recent Requirements Section
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -443,11 +468,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             .limit(5)
                             .snapshots(),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator());
                           }
 
-                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
                             return Card(
                               margin: EdgeInsets.only(bottom: 8),
                               child: Padding(
@@ -463,10 +490,10 @@ class _HomeScreenState extends State<HomeScreen> {
                               return Card(
                                 margin: EdgeInsets.only(bottom: 8),
                                 child: ListTile(
-                                  title: Text(data['projectName'] ?? 'Unnamed Project'),
+                                  title: Text(
+                                      data['projectName'] ?? 'Unnamed Project'),
                                   subtitle: Text(
-                                    '${data['assetType'] ?? ''} - ${data['configuration'] ?? ''}'
-                                  ),
+                                      '${data['assetType'] ?? ''} - ${data['configuration'] ?? ''}'),
                                   trailing: _buildStatusChip(data['status']),
                                   onTap: () {
                                     Navigator.pushNamed(
@@ -481,9 +508,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           );
                         },
                       ),
-                      
+
                       SizedBox(height: 32),
-                      
+
                       // Received Responses Section
                       Text(
                         'Received Responses',
@@ -499,11 +526,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             .where('userId', isEqualTo: currentUser?.uid)
                             .snapshots(),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator());
                           }
 
-                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
                             return Card(
                               margin: EdgeInsets.only(bottom: 8),
                               child: Padding(
@@ -527,25 +556,35 @@ class _HomeScreenState extends State<HomeScreen> {
                                     .limit(3)
                                     .snapshots(),
                                 builder: (context, responseSnapshot) {
-                                  if (responseSnapshot.connectionState == ConnectionState.waiting) {
-                                    return Center(child: CircularProgressIndicator());
+                                  if (responseSnapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return Center(
+                                        child: CircularProgressIndicator());
                                   }
-                                  
-                                  if (!responseSnapshot.hasData || responseSnapshot.data!.docs.isEmpty) {
+
+                                  if (!responseSnapshot.hasData ||
+                                      responseSnapshot.data!.docs.isEmpty) {
                                     return SizedBox();
                                   }
-                                  
-                                  hasAnyResponses = true;
-                                  
+                                  setState(() {
+                                    hasAnyResponses = true;
+                                  });
+
                                   return Column(
-                                    children: responseSnapshot.data!.docs.map((response) {
-                                      final responseData = response.data() as Map<String, dynamic>;
+                                    children: responseSnapshot.data!.docs
+                                        .map((response) {
+                                      final responseData = response.data()
+                                          as Map<String, dynamic>;
                                       return Card(
                                         margin: EdgeInsets.only(bottom: 8),
                                         child: ListTile(
-                                          title: Text(responseData['responderName'] ?? 'Anonymous'),
-                                          subtitle: Text(responseData['message'] ?? ''),
-                                          trailing: _buildStatusChip(responseData['status']),
+                                          title: Text(
+                                              responseData['responderName'] ??
+                                                  'Anonymous'),
+                                          subtitle: Text(
+                                              responseData['message'] ?? ''),
+                                          trailing: _buildStatusChip(
+                                              responseData['status']),
                                           onTap: () {
                                             Navigator.pushNamed(
                                               context,
@@ -561,7 +600,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                           }
-                          
+
                           if (!hasAnyResponses) {
                             return Card(
                               margin: EdgeInsets.only(bottom: 8),
@@ -571,12 +610,12 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                           }
-                          
+
                           return Column(children: responseWidgets);
                         },
                       ),
                       SizedBox(height: 32),
-                      
+
                       // Sent Responses Section
                       Text(
                         'Your Sent Responses',
@@ -594,11 +633,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             .limit(5)
                             .snapshots(),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
                             return Center(child: CircularProgressIndicator());
                           }
 
-                          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          if (!snapshot.hasData ||
+                              snapshot.data!.docs.isEmpty) {
                             return Card(
                               margin: EdgeInsets.only(bottom: 8),
                               child: Padding(
@@ -610,16 +651,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
                           return Column(
                             children: snapshot.data!.docs.map((doc) {
-                              final responseData = doc.data() as Map<String, dynamic>;
+                              final responseData =
+                                  doc.data() as Map<String, dynamic>;
                               return Card(
                                 margin: EdgeInsets.only(bottom: 8),
                                 child: ListTile(
-                                  title: Text('Response to: ${responseData['projectName'] ?? 'Requirement'}'),
+                                  title: Text(
+                                      'Response to: ${responseData['projectName'] ?? 'Requirement'}'),
                                   subtitle: Text(responseData['message'] ?? ''),
-                                  trailing: _buildStatusChip(responseData['status']),
+                                  trailing:
+                                      _buildStatusChip(responseData['status']),
                                   onTap: () {
                                     // Get the parent requirement ID
-                                    final requirementId = doc.reference.parent.parent!.id;
+                                    final requirementId =
+                                        doc.reference.parent.parent!.id;
                                     Navigator.pushNamed(
                                       context,
                                       '/requirement_detail',
@@ -646,7 +691,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildStatusChip(String? status) {
     Color backgroundColor;
     Color textColor;
-    
+
     switch (status?.toLowerCase()) {
       case 'accepted':
         backgroundColor = Colors.green[100]!;
@@ -710,7 +755,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildActionCard(BuildContext context,
-    {required IconData icon, required String title, required VoidCallback onTap}) {
+      {required IconData icon,
+      required String title,
+      required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
       child: Card(
@@ -736,7 +783,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-  
+
   // Remove this duplicate method
   // Color _getStatusColor(String? status) {
   //   switch (status) {
@@ -756,25 +803,25 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 String _formatTimestamp(dynamic timestamp) {
-    if (timestamp == null) return '';
-    
-    DateTime dateTime;
-    if (timestamp is Timestamp) {
-      dateTime = timestamp.toDate();
-    } else {
-      return '';
-    }
-    
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-    
-    if (difference.inDays > 0) {
-      return '${difference.inDays}d ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours}h ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes}m ago';
-    } else {
-      return 'Just now';
-    }
+  if (timestamp == null) return '';
+
+  DateTime dateTime;
+  if (timestamp is Timestamp) {
+    dateTime = timestamp.toDate();
+  } else {
+    return '';
   }
+
+  final now = DateTime.now();
+  final difference = now.difference(dateTime);
+
+  if (difference.inDays > 0) {
+    return '${difference.inDays}d ago';
+  } else if (difference.inHours > 0) {
+    return '${difference.inHours}h ago';
+  } else if (difference.inMinutes > 0) {
+    return '${difference.inMinutes}m ago';
+  } else {
+    return 'Just now';
+  }
+}

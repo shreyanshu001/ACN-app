@@ -269,8 +269,6 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                             fit: BoxFit.cover,
                                             imageErrorBuilder:
                                                 (context, error, stackTrace) {
-                                              print(
-                                                  'Error loading image: $error');
                                               return _buildImagePlaceholder();
                                             },
                                           )
@@ -375,6 +373,15 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                             ),
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
+                                          ),
+                                          SizedBox(height: 8),
+                                          Text(
+                                            data['userId'] ??
+                                                'userId not found',
+                                            style: TextStyle(
+                                              overflow: TextOverflow.ellipsis,
+                                              color: Colors.grey[600],
+                                            ),
                                           ),
                                         ],
                                       ),

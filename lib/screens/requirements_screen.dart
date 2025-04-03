@@ -365,23 +365,28 @@ class _RequirementsScreenState extends State<RequirementsScreen> {
                                               ),
                                             ),
                                           SizedBox(height: 8),
-                                          Text(
-                                            data['details'] ??
-                                                'No details provided',
-                                            style: TextStyle(
-                                              color: Colors.grey[600],
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          SizedBox(height: 8),
-                                          Text(
-                                            data['userId'] ??
-                                                'userId not found',
-                                            style: TextStyle(
-                                              overflow: TextOverflow.ellipsis,
-                                              color: Colors.grey[600],
-                                            ),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                data['details'] ??
+                                                    'No details provided',
+                                                style: TextStyle(
+                                                  color: Colors.grey[600],
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              Text(
+                                                data['name'] ?? 'no name',
+                                                style: TextStyle(
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                  color: Colors.grey[600],
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),

@@ -387,8 +387,8 @@ class _RequirementMatchingScreenState extends State<RequirementMatchingScreen> {
                           itemBuilder: (context, index) {
                             final data = _matchingRequirements[index].data()
                                 as Map<String, dynamic>;
-                            final String reqId =
-                                _matchingRequirements[index].id;
+                            // final String reqId =
+                            //     _matchingRequirements[index].id;
                             final double? distance =
                                 data['distance']?.toDouble();
 

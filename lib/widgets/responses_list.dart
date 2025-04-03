@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 
 class ResponsesList extends StatelessWidget {
   final String requirementId;
-
-  const ResponsesList({required this.requirementId});
+  const ResponsesList({super.key, required this.requirementId});
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +79,7 @@ class ResponsesList extends StatelessWidget {
   Widget _buildStatusChip(String status) {
     Color backgroundColor;
     Color textColor;
-    
+
     switch (status.toLowerCase()) {
       case 'accepted':
         backgroundColor = Colors.green[100]!;

@@ -26,6 +26,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   final _areaController = TextEditingController();
   final _budgetFromController = TextEditingController();
   final _budgetToController = TextEditingController();
+  final _nameController = TextEditingController();
 
   String? _selectedAssetType;
   String? _selectedConfiguration;
@@ -183,6 +184,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
 
         // Then save the requirement with image URLs
         await FirebaseFirestore.instance.collection('requirements').add({
+          'name': _nameController.text,
           'userId': FirebaseAuth.instance.currentUser!.uid,
           'projectName': _projectNameController.text,
           'details': _detailsController.text,
@@ -255,6 +257,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     _areaController.clear();
     _budgetFromController.clear();
     _budgetToController.clear();
+    _nameController.clear();
     setState(() {
       _selectedAssetType = null;
       _selectedConfiguration = null;
@@ -285,6 +288,30 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  'Name *',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 8),
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter your name',
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide.none,
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your name';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
                 // Project Name / Location
                 Text(
                   'Project Name / Location *',
@@ -725,6 +752,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     _areaController.dispose();
     _budgetFromController.dispose();
     _budgetToController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 }

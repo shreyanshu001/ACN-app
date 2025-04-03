@@ -49,10 +49,18 @@ dependencies:
   firebase_admin: ^0.2.0
   args: ^2.3.1
   rxdart: ^0.28.0
+  shared_preferences: ^2.5.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.13.1
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/briqko.png" # Replace with your image path
+  adaptive_icon_background: "#ffffff" # (Optional for Android)
+  # adaptive_icon_foreground: "assets/app_icon_foreground.png" # (Optional for Android)
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

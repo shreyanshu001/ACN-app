@@ -1,4 +1,5 @@
 import 'package:acn/screens/requirement_detail_screen.dart';
+import 'package:acn/widgets/responses_list.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -71,6 +72,12 @@ class MyApp extends StatelessWidget {
           if (settings.name == '/conversation') {
             return MaterialPageRoute(
               builder: (context) => ConversationScreen(),
+            );
+          }
+          if (settings.name == '/response_list') {
+            return MaterialPageRoute(
+              builder: (context) =>
+                  ResponsesList(requirementId: settings.arguments as String),
             );
           }
           return null;

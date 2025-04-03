@@ -74,32 +74,32 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+  // Future<void> _signInWithGoogle() async {
+  //   try {
+  //     final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
 
-      if (googleUser == null) {
-        // User canceled the sign-in flow
-        return;
-      }
+  //     if (googleUser == null) {
+  //       // User canceled the sign-in flow
+  //       return;
+  //     }
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
+  //     final GoogleSignInAuthentication googleAuth =
+  //         await googleUser.authentication;
+  //     final credential = GoogleAuthProvider.credential(
+  //       accessToken: googleAuth.accessToken,
+  //       idToken: googleAuth.idToken,
+  //     );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
-      // Navigate to home screen or handle successful login
-    } catch (e) {
-      print('Error signing in with Google: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Failed to sign in with Google: ${e.toString()}')),
-      );
-    }
-  }
+  //     await FirebaseAuth.instance.signInWithCredential(credential);
+  //     // Navigate to home screen or handle successful login
+  //   } catch (e) {
+  //     print('Error signing in with Google: $e');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //           content: Text('Failed to sign in with Google: ${e.toString()}')),
+  //     );
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {

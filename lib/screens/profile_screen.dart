@@ -19,33 +19,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final User? currentUser = FirebaseAuth.instance.currentUser;
   final ImagePicker _picker = ImagePicker();
   bool _isUploading = false;
-  
+
   // Location variables
   double _locationRange = 50.0; // Default 50km
   String _currentLocation = 'Not set';
   double? _latitude;
   double? _longitude;
   bool _isLoadingLocation = false;
-  
+
   // S3 configuration with fallbacks
   String get _s3Bucket => dotenv.env['S3_BUCKET'] ?? 'your-s3-bucket-name';
   String get _s3Region => dotenv.env['S3_REGION'] ?? 'us-east-1';
   String get _s3AccessKey => dotenv.env['S3_ACCESS_KEY'] ?? '';
   String get _s3SecretKey => dotenv.env['S3_SECRET_KEY'] ?? '';
-  
+
   // Check if S3 is properly configured
-  bool get _isS3Configured => _s3AccessKey.isNotEmpty && _s3SecretKey.isNotEmpty;
+  bool get _isS3Configured =>
+      _s3AccessKey.isNotEmpty && _s3SecretKey.isNotEmpty;
 
   Future<void> _signOut() async {
     try {
       await FirebaseAuth.instance.signOut();
+      // // Clear user data from local storage if needed
+      // // For example, using shared_preferences or any other method
+      // SharedPreferences prefs = await SharedPreferences.getInstance();
+      // await prefs.remove('userData');
       Navigator.of(context).pushReplacementNamed('/login');
     } catch (e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Sign out failed: $e')));
     }
   }
-  
+
   Future<void> _pickAndUploadProfileImage() async {
     try {
       final XFile? image = await _picker.pickImage(
@@ -54,24 +59,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         maxHeight: 512,
         imageQuality: 75,
       );
-      
+
       if (image == null) return;
-      
+
       setState(() {
         _isUploading = true;
       });
-      
+
       // Upload to S3
       final String fileName = '${Uuid().v4()}${path.extension(image.path)}';
-      final String? imageUrl = await _uploadToS3(
-        File(image.path), 
-        'profile-images/$fileName'
-      );
-      
+      final String? imageUrl =
+          await _uploadToS3(File(image.path), 'profile-images/$fileName');
+
       if (imageUrl != null && currentUser != null) {
         // Update user profile
         await currentUser!.updatePhotoURL(imageUrl);
-        
+
         // Update Firestore document
         await FirebaseFirestore.instance
             .collection('agents')
@@ -79,27 +82,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .update({
           'photoURL': imageUrl,
         });
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Profile image updated successfully'))
-        );
+            SnackBar(content: Text('Profile image updated successfully')));
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update profile image: $e'))
-      );
+          SnackBar(content: Text('Failed to update profile image: $e')));
     } finally {
       setState(() {
         _isUploading = false;
       });
     }
   }
-  
+
   Future<String?> _uploadToS3(File file, String key) async {
     if (!_isS3Configured) {
       throw Exception('S3 configuration missing. Please check your .env file.');
     }
-    
+
     try {
       final result = await AwsS3.uploadFile(
         accessKey: _s3AccessKey,
@@ -113,7 +114,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'timestamp': DateTime.now().toIso8601String(),
         },
       );
-      
+
       return result;
     } catch (e) {
       print('Error uploading to S3: $e');
@@ -126,16 +127,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadUserLocationData();
   }
-  
+
   Future<void> _loadUserLocationData() async {
     if (currentUser == null) return;
-    
+
     try {
       final doc = await FirebaseFirestore.instance
           .collection('agents')
           .doc(currentUser!.uid)
           .get();
-      
+
       if (doc.exists) {
         final data = doc.data();
         if (data != null) {
@@ -156,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _isLoadingLocation = true;
     });
-    
+
     try {
       // Check location permissions
       LocationPermission permission = await Geolocator.checkPermission();
@@ -166,63 +167,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
           throw Exception('Location permission denied');
         }
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         throw Exception('Location permissions are permanently denied');
       }
-      
+
       // Get current position
       Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high
-      );
-      
+          desiredAccuracy: LocationAccuracy.high);
+
       // Get address from coordinates
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        position.latitude, 
-        position.longitude
-      );
-      
+      List<Placemark> placemarks =
+          await placemarkFromCoordinates(position.latitude, position.longitude);
+
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
         String address = '${place.locality}, ${place.administrativeArea}';
-        
+
         setState(() {
           _latitude = position.latitude;
           _longitude = position.longitude;
           _currentLocation = address;
         });
-        
+
         // Save to Firestore
         await _saveLocationToFirestore(
-          position.latitude, 
-          position.longitude, 
-          address, 
-          _locationRange
-        );
-        
+            position.latitude, position.longitude, address, _locationRange);
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Location updated successfully'))
-        );
+            SnackBar(content: Text('Location updated successfully')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to get location: $e'))
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Failed to get location: $e')));
     } finally {
       setState(() {
         _isLoadingLocation = false;
       });
     }
   }
-  
+
   Future<void> _saveLocationToFirestore(
-    double latitude, 
-    double longitude, 
-    String address, 
-    double range
-  ) async {
+      double latitude, double longitude, String address, double range) async {
     if (currentUser == null) return;
-    
+
     await FirebaseFirestore.instance
         .collection('agents')
         .doc(currentUser!.uid)
@@ -234,19 +222,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'updatedAt': FieldValue.serverTimestamp(),
     });
   }
-  
+
   Future<void> _updateLocationRange(double value) async {
     setState(() {
       _locationRange = value;
     });
-    
+
     if (_latitude != null && _longitude != null) {
       await _saveLocationToFirestore(
-        _latitude!, 
-        _longitude!, 
-        _currentLocation, 
-        value
-      );
+          _latitude!, _longitude!, _currentLocation, value);
     }
   }
 
@@ -315,7 +299,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ),
                               )
                             : IconButton(
-                                icon: Icon(Icons.camera_alt, color: Colors.white),
+                                icon:
+                                    Icon(Icons.camera_alt, color: Colors.white),
                                 onPressed: _pickAndUploadProfileImage,
                               ),
                       ),
@@ -333,7 +318,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 SizedBox(height: 20),
-                
+
                 // Verification status card
                 Card(
                   child: ListTile(
@@ -349,9 +334,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                
+
                 SizedBox(height: 10),
-                
+
                 // Member since card
                 Card(
                   child: ListTile(
@@ -364,9 +349,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
                 ),
-                
+
                 SizedBox(height: 10),
-                
+
                 // Location settings card
                 Card(
                   child: Padding(
@@ -388,7 +373,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 ? SizedBox(
                                     width: 20,
                                     height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   )
                                 : IconButton(
                                     icon: Icon(Icons.my_location),

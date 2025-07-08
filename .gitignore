@@ -12,6 +12,7 @@ build
 .env
 # .gitignore
 .env
+lib/screens/.env
 # Android related
 **/android/**/gradle-wrapper.jar
 **/android/.gradle
